@@ -1,0 +1,865 @@
+// ─── Prisma Schema for CoalMine Governance API ──────────────────────────────
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Enums ──────────────────────────────────────────────────────────────────
+
+enum UserRole {
+  MINE_OFFICIAL
+  CORPORATE
+  REGULATOR
+  ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  BLOCKED
+}
+
+enum ComplianceCategory {
+  SAFETY
+  ENVIRONMENT
+  LABOUR
+  PRODUCTION
+}
+
+enum ApplicableTo {
+  MINE
+  COMPANY
+  ALL
+}
+
+enum ComplianceStatus {
+  COMPLIANT
+  NON_COMPLIANT
+  PENDING
+}
+
+enum InspectionStatus {
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum ObservationSeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum FindingType {
+  NOTE
+  UNSAFE_CONDITION
+  NON_COMPLIANCE
+}
+
+enum ViolationStatus {
+  OPEN
+  UNDER_REVIEW
+  RESOLVED
+  WAIVED
+}
+
+enum CapaStatus {
+  OPEN
+  IN_PROGRESS
+  CLOSED
+  OVERDUE
+}
+
+enum NotificationType {
+  COMPLIANCE_DUE
+  COMPLIANCE_OVERDUE
+  VIOLATION_RAISED
+  CAPA_DUE
+  CAPA_OVERDUE
+  GRIEVANCE_SLA
+  RISK_HIGH
+}
+
+enum EscalationOutcome {
+  SENT
+  SKIPPED
+  FAILED
+}
+
+enum RiskBand {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum AnomalyType {
+  VIOLATION_SPIKE
+  OVERDUE_CAPA_CLUSTER
+  RECURRING_NON_COMPLIANCE
+}
+
+enum AnomalyStatus {
+  OPEN
+  ACKNOWLEDGED
+  RESOLVED
+  DISMISSED
+}
+
+enum ContractorStatus {
+  ACTIVE
+  SUSPENDED
+  INACTIVE
+}
+
+enum ContractStatus {
+  DRAFT
+  ACTIVE
+  EXPIRED
+  TERMINATED
+}
+
+enum WorkerStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum EmploymentType {
+  EMPLOYEE
+  CONTRACTOR
+}
+
+enum AttendanceMethod {
+  MANUAL
+  MOBILE
+  KIOSK
+}
+
+enum GrievancePriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum GrievanceStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  ESCALATED
+  CLOSED
+}
+
+enum GrievanceCategory {
+  SAFETY
+  HARASSMENT
+  WAGE_PAYMENT
+  EQUIPMENT
+  ENVIRONMENT
+  OTHER
+}
+
+enum CommentVisibility {
+  REPORTER_AND_HANDLERS
+  HANDLERS_ONLY
+}
+
+enum OcrJobStatus {
+  QUEUED
+  PROCESSING
+  COMPLETED
+  FAILED
+  NEEDS_REVIEW
+}
+
+enum OcrTargetType {
+  COMPLIANCE_RECORD
+  INSPECTION
+  OTHER
+}
+
+// ─── Models ─────────────────────────────────────────────────────────────────
+
+model User {
+  id                   String                   @id @default(uuid())
+  name                 String
+  email                String                   @unique
+  phone                String?
+  passwordHash         String
+  role                 UserRole
+  status               UserStatus               @default(ACTIVE)
+  companyId            String?
+  company              Company?                 @relation(fields: [companyId], references: [id])
+  refreshTokens        RefreshToken[]
+  mineAssignments      UserMineAssignment[]     @relation("AssignedUser")
+  assignedAssignments  UserMineAssignment[]     @relation("AssignedBy")
+  createdTemplates     InspectionTemplate[]
+  conductedInspections Inspection[]             @relation("ConductedInspections")
+  createdInspections   Inspection[]             @relation("CreatedInspections")
+  recordedObservations Observation[]
+  raisedViolations     Violation[]              @relation("RaisedViolations")
+  assignedCapas        CorrectiveAction[]       @relation("AssignedToCapa")
+  createdCapas         CorrectiveAction[]       @relation("AssignedByCapa")
+  verifiedCapas        CorrectiveAction[]       @relation("VerifiedCapa")
+  notifications        Notification[]           @relation("UserNotifications")
+  anomalyActions       AnomalyFlag[]            @relation("AnomalyActionUser")
+  createdContracts     ContractorContract[]     @relation("CreatedContracts")
+  workerProfile        Worker?
+  recordedAttendances  AttendanceRecord[]       @relation("AttendanceRecorder")
+  reportedGrievances   Grievance[]              @relation("ReportedGrievances")
+  assignedGrievances   Grievance[]              @relation("AssignedGrievances")
+  grievanceComments    GrievanceComment[]       @relation("CommentAuthor")
+  grievanceHistories   GrievanceStatusHistory[] @relation("GrievanceHistoryActor")
+  uploadedAttachments  Attachment[]             @relation("UploadedAttachments")
+  requestedOcrJobs     OcrJob[]                 @relation("RequestedOcrJobs")
+  reviewedExtractions  OcrExtraction[]          @relation("ReviewedExtractions")
+  authoredAuditLogs    AuditLog[]               @relation("AuditActor")
+  createdAt            DateTime                 @default(now())
+  updatedAt            DateTime                 @updatedAt
+
+  @@index([role])
+  @@index([status])
+  @@index([companyId])
+}
+
+model Company {
+  id                  String               @id @default(uuid())
+  name                String
+  code                String               @unique
+  type                String
+  status              String               @default("ACTIVE")
+  users               User[]
+  mines               Mine[]
+  inspectionTemplates InspectionTemplate[]
+  riskScores          RiskScore[]
+  contractors         Contractor[]
+  contracts           ContractorContract[]
+  workers             Worker[]
+  attendanceRecords   AttendanceRecord[]
+  grievances          Grievance[]
+  attachments         Attachment[]
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+}
+
+model Mine {
+  id                String                       @id @default(uuid())
+  companyId         String
+  company           Company                      @relation(fields: [companyId], references: [id])
+  name              String
+  code              String                       @unique
+  location          String
+  geoBoundary       Json?
+  status            String                       @default("ACTIVE")
+  records           ComplianceRecord[]
+  userAssignments   UserMineAssignment[]
+  inspections       Inspection[]
+  violations        Violation[]
+  riskScores        RiskScore[]
+  anomalies         AnomalyFlag[]
+  contracts         ContractorContract[]
+  workerAssignments ContractorWorkerAssignment[]
+  attendanceRecords AttendanceRecord[]
+  grievances        Grievance[]
+  attachments       Attachment[]
+  createdAt         DateTime                     @default(now())
+  updatedAt         DateTime                     @updatedAt
+
+  @@index([companyId])
+  @@index([status])
+}
+
+model UserMineAssignment {
+  id           String    @id @default(uuid())
+  userId       String
+  user         User      @relation("AssignedUser", fields: [userId], references: [id], onDelete: Cascade)
+  mineId       String
+  mine         Mine      @relation(fields: [mineId], references: [id], onDelete: Cascade)
+  assignedAt   DateTime  @default(now())
+  assignedById String?
+  assignedBy   User?     @relation("AssignedBy", fields: [assignedById], references: [id])
+  active       Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@unique([userId, mineId])
+  @@index([userId])
+  @@index([mineId])
+  @@index([active])
+}
+
+model ComplianceRequirement {
+  id           String              @id @default(uuid())
+  title        String
+  category     ComplianceCategory
+  frequency    String
+  description  String?
+  applicableTo ApplicableTo        @default(MINE)
+  active       Boolean             @default(true)
+  records      ComplianceRecord[]
+  observations Observation[]
+  violations   Violation[]
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+
+  @@index([category])
+  @@index([applicableTo])
+  @@index([active])
+}
+
+model ComplianceRecord {
+  id            String                @id @default(uuid())
+  requirementId String
+  requirement   ComplianceRequirement @relation(fields: [requirementId], references: [id])
+  mineId        String
+  mine          Mine                  @relation(fields: [mineId], references: [id])
+  lastCheckedAt DateTime?
+  nextDueAt     DateTime?
+  status        ComplianceStatus      @default(PENDING)
+  remarks       String?
+  observations  Observation[]
+  violations    Violation[]
+  createdAt     DateTime              @default(now())
+  updatedAt     DateTime              @updatedAt
+
+  @@unique([requirementId, mineId])
+  @@index([mineId])
+  @@index([requirementId])
+  @@index([status])
+}
+
+model InspectionTemplate {
+  id          String              @id @default(uuid())
+  companyId   String?
+  company     Company?            @relation(fields: [companyId], references: [id])
+  name        String
+  category    ComplianceCategory?
+  description String?
+  checklist   Json
+  isActive    Boolean             @default(true)
+  createdById String
+  createdBy   User                @relation(fields: [createdById], references: [id])
+  inspections Inspection[]
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+
+  @@index([companyId])
+  @@index([isActive])
+}
+
+model Inspection {
+  id            String              @id @default(uuid())
+  mineId        String
+  mine          Mine                @relation(fields: [mineId], references: [id])
+  templateId    String?
+  template      InspectionTemplate? @relation(fields: [templateId], references: [id])
+  scheduledFor  DateTime
+  startedAt     DateTime?
+  completedAt   DateTime?
+  status        InspectionStatus    @default(SCHEDULED)
+  conductedById String?
+  conductedBy   User?               @relation("ConductedInspections", fields: [conductedById], references: [id])
+  createdById   String
+  createdBy     User                @relation("CreatedInspections", fields: [createdById], references: [id])
+  purpose       String?
+  summary       String?
+  observations  Observation[]
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+
+  @@index([mineId, status, scheduledFor])
+  @@index([conductedById, status])
+  @@index([createdById])
+}
+
+model Observation {
+  id                      String                 @id @default(uuid())
+  inspectionId            String
+  inspection              Inspection             @relation(fields: [inspectionId], references: [id], onDelete: Cascade)
+  sequenceNumber          Int
+  title                   String
+  description             String
+  category                ComplianceCategory?
+  severity                ObservationSeverity    @default(MEDIUM)
+  findingType             FindingType            @default(NOTE)
+  complianceRequirementId String?
+  complianceRequirement   ComplianceRequirement? @relation(fields: [complianceRequirementId], references: [id])
+  complianceRecordId      String?
+  complianceRecord        ComplianceRecord?      @relation(fields: [complianceRecordId], references: [id])
+  isViolationCandidate    Boolean                @default(false)
+  recordedById            String
+  recordedBy              User                   @relation(fields: [recordedById], references: [id])
+  violation               Violation?
+  createdAt               DateTime               @default(now())
+  updatedAt               DateTime               @updatedAt
+
+  @@unique([inspectionId, sequenceNumber])
+  @@index([inspectionId])
+  @@index([complianceRequirementId])
+  @@index([complianceRecordId])
+  @@index([severity])
+  @@index([findingType])
+}
+
+model Violation {
+  id                      String                 @id @default(uuid())
+  observationId           String                 @unique
+  observation             Observation            @relation(fields: [observationId], references: [id], onDelete: Restrict)
+  mineId                  String
+  mine                    Mine                   @relation(fields: [mineId], references: [id])
+  complianceRequirementId String?
+  complianceRequirement   ComplianceRequirement? @relation(fields: [complianceRequirementId], references: [id])
+  complianceRecordId      String?
+  complianceRecord        ComplianceRecord?      @relation(fields: [complianceRecordId], references: [id])
+  severity                ObservationSeverity
+  status                  ViolationStatus        @default(OPEN)
+  title                   String
+  description             String
+  raisedById              String
+  raisedBy                User                   @relation("RaisedViolations", fields: [raisedById], references: [id])
+  raisedAt                DateTime               @default(now())
+  resolvedAt              DateTime?
+  resolutionNote          String?
+  correctiveActions       CorrectiveAction[]
+  createdAt               DateTime               @default(now())
+  updatedAt               DateTime               @updatedAt
+
+  @@index([mineId, status, severity, raisedAt])
+  @@index([complianceRequirementId])
+  @@index([complianceRecordId])
+  @@index([raisedById])
+}
+
+model CorrectiveAction {
+  id           String     @id @default(uuid())
+  violationId  String
+  violation    Violation  @relation(fields: [violationId], references: [id], onDelete: Restrict)
+  title        String
+  description  String
+  assignedToId String
+  assignedTo   User       @relation("AssignedToCapa", fields: [assignedToId], references: [id])
+  assignedById String
+  assignedBy   User       @relation("AssignedByCapa", fields: [assignedById], references: [id])
+  dueAt        DateTime
+  status       CapaStatus @default(OPEN)
+  startedAt    DateTime?
+  closedAt     DateTime?
+  closureNote  String?
+  verifiedById String?
+  verifiedBy   User?      @relation("VerifiedCapa", fields: [verifiedById], references: [id])
+  verifiedAt   DateTime?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  @@index([violationId, status, dueAt])
+  @@index([assignedToId, status, dueAt])
+  @@index([assignedById])
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String   @unique
+  expiresAt DateTime
+  revoked   Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+model Notification {
+  id           String           @id @default(uuid())
+  recipientId  String
+  recipient    User             @relation("UserNotifications", fields: [recipientId], references: [id], onDelete: Cascade)
+  type         NotificationType
+  title        String
+  body         String
+  resourceType String
+  resourceId   String
+  severity     String           @default("INFO")
+  readAt       DateTime?
+  deliveredAt  DateTime         @default(now())
+  metadata     Json?
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  @@index([recipientId, readAt, createdAt])
+  @@index([resourceType, resourceId])
+}
+
+model EscalationLog {
+  id             String            @id @default(uuid())
+  ruleKey        String
+  resourceType   String
+  resourceId     String
+  stage          Int
+  recipientId    String?
+  recipientRole  String?
+  occurredAt     DateTime          @default(now())
+  notificationId String?
+  idempotencyKey String            @unique
+  outcome        EscalationOutcome @default(SENT)
+  detail         Json?
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  @@index([resourceType, resourceId, stage])
+  @@index([occurredAt])
+  @@index([ruleKey])
+}
+
+model RiskScore {
+  id                       String        @id @default(uuid())
+  mineId                   String
+  mine                     Mine          @relation(fields: [mineId], references: [id], onDelete: Cascade)
+  companyId                String
+  company                  Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  score                    Int
+  band                     RiskBand
+  calculationVersion       String        @default("1.0.0")
+  calculatedAt             DateTime      @default(now())
+  windowStart              DateTime
+  windowEnd                DateTime
+  factors                  Json
+  sourceCounts             Json
+  plainLanguageExplanation String
+  createdAt                DateTime      @default(now())
+  anomalies                AnomalyFlag[]
+
+  @@index([mineId, calculatedAt])
+  @@index([companyId, calculatedAt])
+  @@index([band])
+}
+
+model AnomalyFlag {
+  id                 String        @id @default(uuid())
+  mineId             String
+  mine               Mine          @relation(fields: [mineId], references: [id], onDelete: Cascade)
+  type               AnomalyType
+  status             AnomalyStatus @default(OPEN)
+  detectedAt         DateTime      @default(now())
+  baseline           Json
+  observed           Json
+  threshold          String
+  calculationVersion String        @default("1.0.0")
+  relatedRiskScoreId String?
+  relatedRiskScore   RiskScore?    @relation(fields: [relatedRiskScoreId], references: [id], onDelete: SetNull)
+  actionReason       String?
+  actionById         String?
+  actionBy           User?         @relation("AnomalyActionUser", fields: [actionById], references: [id], onDelete: SetNull)
+  actionAt           DateTime?
+  dedupKey           String        @unique
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+
+  @@index([mineId, status, detectedAt])
+  @@index([type])
+}
+
+model Contractor {
+  id                 String               @id @default(uuid())
+  companyId          String
+  company            Company              @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  legalName          String
+  tradeName          String?
+  registrationNumber String?
+  contactName        String?
+  email              String?
+  phone              String?
+  address            Json?
+  status             ContractorStatus     @default(ACTIVE)
+  deletedAt          DateTime?
+  contracts          ContractorContract[]
+  workers            ContractorWorker[]
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+
+  @@unique([companyId, registrationNumber])
+  @@index([companyId, status])
+}
+
+model ContractorContract {
+  id                String                       @id @default(uuid())
+  contractorId      String
+  contractor        Contractor                   @relation(fields: [contractorId], references: [id], onDelete: Cascade)
+  companyId         String
+  company           Company                      @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  mineId            String?
+  mine              Mine?                        @relation(fields: [mineId], references: [id], onDelete: Cascade)
+  contractNumber    String
+  title             String
+  startDate         DateTime
+  endDate           DateTime
+  status            ContractStatus               @default(ACTIVE)
+  scopeOfWork       Json?
+  terminationReason String?
+  terminatedAt      DateTime?
+  createdById       String
+  createdBy         User                         @relation("CreatedContracts", fields: [createdById], references: [id])
+  workerAssignments ContractorWorkerAssignment[]
+  createdAt         DateTime                     @default(now())
+  updatedAt         DateTime                     @updatedAt
+
+  @@unique([companyId, contractNumber])
+  @@index([mineId, status, startDate, endDate])
+  @@index([companyId, status])
+  @@index([contractorId, status])
+}
+
+model ContractorWorker {
+  id                 String                       @id @default(uuid())
+  contractorId       String
+  contractor         Contractor                   @relation(fields: [contractorId], references: [id], onDelete: Cascade)
+  employeeCode       String?
+  fullName           String
+  phone              String?
+  governmentIdHash   String?
+  governmentIdMasked String?
+  role               String?
+  status             WorkerStatus                 @default(ACTIVE)
+  assignments        ContractorWorkerAssignment[]
+  workerProfile      Worker?
+  createdAt          DateTime                     @default(now())
+  updatedAt          DateTime                     @updatedAt
+
+  @@unique([contractorId, employeeCode])
+  @@index([contractorId, status])
+}
+
+model ContractorWorkerAssignment {
+  id           String             @id @default(uuid())
+  workerId     String
+  worker       ContractorWorker   @relation(fields: [workerId], references: [id], onDelete: Cascade)
+  contractId   String
+  contract     ContractorContract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  mineId       String
+  mine         Mine               @relation(fields: [mineId], references: [id], onDelete: Cascade)
+  status       WorkerStatus       @default(ACTIVE)
+  assignedAt   DateTime           @default(now())
+  unassignedAt DateTime?
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+
+  @@unique([workerId, contractId, mineId])
+  @@index([mineId, status])
+  @@index([contractId, status])
+}
+
+model Worker {
+  id                 String              @id @default(uuid())
+  companyId          String
+  company            Company             @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  employmentType     EmploymentType
+  displayName        String
+  employeeCode       String?
+  phone              String?
+  status             WorkerStatus        @default(ACTIVE)
+  contractorWorkerId String?             @unique
+  contractorWorker   ContractorWorker?   @relation(fields: [contractorWorkerId], references: [id], onDelete: Cascade)
+  userId             String?             @unique
+  user               User?               @relation(fields: [userId], references: [id], onDelete: SetNull)
+  attendanceRecords  AttendanceRecord[]
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+
+  @@unique([companyId, employeeCode])
+  @@index([companyId, employmentType, status])
+}
+
+model AttendanceRecord {
+  id                String            @id @default(uuid())
+  workerId          String
+  worker            Worker            @relation(fields: [workerId], references: [id], onDelete: Cascade)
+  mineId            String
+  mine              Mine              @relation(fields: [mineId], references: [id], onDelete: Cascade)
+  companyId         String
+  company           Company           @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  businessDate      String            // "YYYY-MM-DD"
+  checkInAt         DateTime
+  checkOutAt        DateTime?
+  checkInLatitude   Float?
+  checkInLongitude  Float?
+  checkOutLatitude  Float?
+  checkOutLongitude Float?
+  checkInMethod     AttendanceMethod  @default(MANUAL)
+  checkOutMethod    AttendanceMethod?
+  recordedById      String
+  recordedBy        User              @relation("AttendanceRecorder", fields: [recordedById], references: [id])
+  note              String?
+  isOpen            Boolean           @default(true)
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  @@index([mineId, businessDate])
+  @@index([workerId, businessDate])
+  @@index([companyId, businessDate])
+  @@index([mineId, isOpen])
+  @@index([workerId, isOpen])
+}
+
+model Grievance {
+  id             String                   @id @default(uuid())
+  reporterId     String
+  reporter       User                     @relation("ReportedGrievances", fields: [reporterId], references: [id])
+  companyId      String
+  company        Company                  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  mineId         String?
+  mine           Mine?                    @relation(fields: [mineId], references: [id], onDelete: Cascade)
+  subject        String
+  description    String
+  category       GrievanceCategory
+  priority       GrievancePriority        @default(MEDIUM)
+  status         GrievanceStatus          @default(OPEN)
+  assignedToId   String?
+  assignedTo     User?                    @relation("AssignedGrievances", fields: [assignedToId], references: [id], onDelete: SetNull)
+  slaDueAt       DateTime
+  acknowledgedAt DateTime?
+  resolvedAt     DateTime?
+  closedAt       DateTime?
+  resolutionNote String?
+  comments       GrievanceComment[]
+  statusHistory  GrievanceStatusHistory[]
+  createdAt      DateTime                 @default(now())
+  updatedAt      DateTime                 @updatedAt
+
+  @@index([companyId, status])
+  @@index([mineId, status])
+  @@index([reporterId, status])
+  @@index([slaDueAt, status])
+  @@index([priority])
+}
+
+model GrievanceComment {
+  id          String            @id @default(uuid())
+  grievanceId String
+  grievance   Grievance         @relation(fields: [grievanceId], references: [id], onDelete: Cascade)
+  authorId    String
+  author      User              @relation("CommentAuthor", fields: [authorId], references: [id])
+  body        String
+  visibility  CommentVisibility @default(REPORTER_AND_HANDLERS)
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  @@index([grievanceId, visibility])
+}
+
+model GrievanceStatusHistory {
+  id          String          @id @default(uuid())
+  grievanceId String
+  grievance   Grievance       @relation(fields: [grievanceId], references: [id], onDelete: Cascade)
+  actorId     String
+  actor       User            @relation("GrievanceHistoryActor", fields: [actorId], references: [id])
+  fromStatus  GrievanceStatus
+  toStatus    GrievanceStatus
+  reason      String?
+  createdAt   DateTime        @default(now())
+
+  @@index([grievanceId, createdAt])
+}
+
+model Attachment {
+  id           String      @id @default(uuid())
+  fileName     String
+  fileSize     Int
+  mimeType     String
+  fileHash     String      // SHA-256 for deduplication
+  storageKey   String
+  uploadedById String
+  uploadedBy   User        @relation("UploadedAttachments", fields: [uploadedById], references: [id])
+  companyId    String?
+  company      Company?    @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  mineId       String?
+  mine         Mine?       @relation(fields: [mineId], references: [id], onDelete: Cascade)
+  ocrJobs      OcrJob[]
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  @@index([uploadedById])
+  @@index([fileHash])
+  @@index([companyId])
+  @@index([mineId])
+}
+
+model OcrJob {
+  id            String         @id @default(uuid())
+  attachmentId  String
+  attachment    Attachment     @relation(fields: [attachmentId], references: [id], onDelete: Cascade)
+  requestedById String
+  requestedBy   User           @relation("RequestedOcrJobs", fields: [requestedById], references: [id])
+  status        OcrJobStatus   @default(QUEUED)
+  engineName    String         @default("mock-ocr-v1")
+  engineVersion String         @default("1.0.0")
+  languageHints String[]
+  targetType    OcrTargetType?
+  targetId      String?
+  errorCode     String?
+  errorMessage  String?
+  startedAt     DateTime?
+  completedAt   DateTime?
+  extraction    OcrExtraction?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  @@index([status, createdAt])
+  @@index([requestedById])
+  @@index([attachmentId, engineVersion])
+}
+
+model OcrExtraction {
+  id              String    @id @default(uuid())
+  jobId           String    @unique
+  job             OcrJob    @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  rawText         String?
+  confidence      Float?
+  fields          Json      // { formType: { value, confidence, span }, ... }
+  correctedFields Json?     // Human corrections
+  reviewedById    String?
+  reviewedBy      User?     @relation("ReviewedExtractions", fields: [reviewedById], references: [id])
+  reviewedAt      DateTime?
+  isLinked        Boolean   @default(false)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+}
+
+model AuditLog {
+  id            String   @id @default(uuid())
+  sequence      Int      @default(autoincrement())
+  occurredAt    DateTime @default(now())
+  actorId       String?
+  actor         User?    @relation("AuditActor", fields: [actorId], references: [id], onDelete: SetNull)
+  action        String   // COMPLIANCE_STATUS_UPDATED, VIOLATION_RAISED, CAPA_CLOSED, GRIEVANCE_STATUS_CHANGED, etc.
+  entityType    String   // ComplianceRecord, Violation, CorrectiveAction, Grievance, User, Inspection
+  entityId      String
+  companyId     String?
+  mineId        String?
+  beforeSummary Json?    // Sanitized summary before modification
+  afterSummary  Json?    // Sanitized summary after modification
+  metadata      Json?    // Contextual non-sensitive metadata
+  prevHash      String   // Previous record's HMAC hash (or genesis 0000... for sequence 1)
+  payloadHash   String   // SHA-256 of canonical event payload
+  hmacHash      String   // HMAC-SHA-256(secret, prevHash:payloadHash:sequence)
+  chainVersion  String   @default("1.0.0")
+  correlationId String?
+  createdAt     DateTime @default(now())
+
+  @@unique([sequence])
+  @@index([entityType, entityId, sequence])
+  @@index([companyId, mineId, occurredAt])
+  @@index([actorId, occurredAt])
+  @@index([hmacHash])
+}
+
+
+
+
+
+
+

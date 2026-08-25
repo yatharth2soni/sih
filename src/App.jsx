@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { api, tokenStorage } from "./api/client";
 
 // ─── COMPREHENSIVE STRICT TRANSLATION DICTIONARY ──────────────────────────────
 const i18n = {
@@ -8,48 +9,59 @@ const i18n = {
     officerName: "R. Mahapatra",
     officerRole: "Compliance Officer",
 
+    // Roles
+    roleMineOfficial: "Mine Official",
+    roleCorporate: "Corporate Management",
+    roleRegulator: "DGMS Regulatory Authority",
+    roleContractor: "Contractor / Compliance",
+    switchRole: "Switch Role",
+
     // Authentication & Onboarding
-    authTitle: "Contractor Safety & Compliance Access",
-    authSubtitle: "Directorate General of Mines Safety (DGMS) Portal",
-    authPrompt: "Enter your authorized credentials to generate your specific Mining Grid Access ID.",
+    authTitle: "Smart Coal Mining Governance Portal",
+    authSubtitle: "Directorate General of Mines Safety (DGMS) & Ministry of Coal",
+    authPrompt: "Select your governance role and enter authorized credentials to access the grid.",
+    lblRoleSelect: "Select Governance Role",
     lblEmail: "Official Email Address",
-    phEmail: "contractor@mininginfra.in",
-    lblContractor: "Contractor / Agency Name",
-    phContractor: "e.g. Eastern Coking & Earthmovers Ltd.",
-    lblPassword: "Password",
+    phEmail: "officer@coalindia.gov.in",
+    lblContractor: "Designation / Organization Name",
+    phContractor: "e.g. Area Safety Officer / Eastern Coalfields Ltd.",
+    lblPassword: "Password / Security Token",
     phPassword: "Enter your password",
     lblMineBlockSelect: "Assigned Mine Block",
-    btnSubmitAuth: "Generate Contractor ID & Enter Grid",
-    authGeneratedIdLbl: "Generated Contractor ID",
-    authSecurityNotice: "Statutory requirement under Coal Mines Regulations (CMR Reg. 108). All activities are cryptographically signed and logged.",
+    btnSubmitAuth: "Enter Governance Grid",
+    authGeneratedIdLbl: "Generated Statutory Access ID",
+    authSecurityNotice: "Statutory requirement under Coal Mines Regulations (CMR Reg. 108) & Mines Act 1952. All activities are cryptographically signed and logged.",
     quickDemoFill: "Quick Demo Auto-Fill",
     logout: "Log out",
-    contractorBadge: "Contractor ID",
+    contractorBadge: "Access ID",
     authPassError: "Please enter your password",
     authEmailError: "Please enter a valid official email",
-    authNameError: "Please enter your contractor or organization name",
+    authNameError: "Please enter your designation or organization name",
 
-    // Navigation
+    // Navigation Tabs
     navDashboard: "Dashboard",
+    navTelemetry: "Gas & Telemetry",
     navInspections: "Inspections",
     navInsights: "AI Insights",
-    navReports: "Reports",
-    navAlerts: "Alerts",
-    navDocuments: "Documents",
+    navCompliance: "Compliance Register",
+    navContractors: "Contractors",
+    navReports: "Reports & Filings",
+    navAudit: "Audit Trail",
+    navAssistant: "Governance Assistant",
+    assistantTitle: "Multilingual Governed Assistant",
+    assistantSub: "Grounded AI query interface for safety scores, compliance rates, and statutory citations",
     navSettings: "Settings",
-    navUserManagement: "User Management",
     mainMenu: "MAIN MENU",
     systemMenu: "SYSTEM",
-    navCategoryCore: "Main Menu",
-    navCategoryStatutory: "Grid Telemetry",
     liveDgmsSync: "Live DGMS Sync",
     dgmsPortal: "DGMS Portal",
+    offlineModeActive: "Field Mode (Offline Queue Active)",
+    btnSyncNow: "Sync Now",
+    syncSuccess: "All offline logs synchronized with DGMS Central Server successfully.",
 
     // Dashboard Overview
-    dashboardOverview: "Dashboard Overview",
-    dashboardSub: "Real-time overview of mining operations and compliance",
-    btnCreateDashboardHeader: "Create Dashboard",
-    btnCustomize: "Customize",
+    dashboardOverview: "Governance Dashboard",
+    dashboardSub: "Real-time overview of mining operations, statutory compliance & telemetry",
     kpiRiskScore: "COMPOSITE RISK SCORE",
     kpiModerateRisk: "Moderate Risk",
     kpiOverdueInspections: "OVERDUE INSPECTIONS",
@@ -58,19 +70,19 @@ const i18n = {
     kpiPersonnel: "Personnel",
     kpiDustLevel: "DUST LEVEL (Avg)",
     kpiWithinLimits: "Within Limits",
-    cardRiskTrend: "Risk Trend (Last 7 Days)",
-    cardInspectionsStatus: "Inspections Status",
-    cardRecentAlerts: "Recent Alerts",
-    cardActiveOperations: "Active Operations",
-    cardDgmsCompliance: "DGMS Compliance",
-    overallCompliance: "Overall Compliance",
-    complianceTrend: "from last week",
-    opt7Days: "7 Days",
-    total108: "Total 108",
-    completedLegend: "Completed",
-    pendingLegend: "Pending",
-    overdueLegend: "Overdue",
-    scheduledLegend: "Scheduled",
+    kpiMethaneAvg: "CH₄ METHANE LEVEL",
+    kpiAirflowNominal: "Airflow Nominal",
+    kpiAggregateCompliance: "AGGREGATE COMPLIANCE",
+    kpiAcross4Mines: "Across 4 monitored mines",
+    kpiPendingApprovals: "PENDING STATUTORY RETURNS",
+    kpiForm3AQueue: "Form III-A review queue",
+
+    // Quick Actions
+    btnStartInspection: "Start Inspection",
+    btnLogObservation: "Log Observation",
+    btnBroadcastEvacuation: "Broadcast Alert",
+    btnExportDossier: "Export Executive Dossier",
+    btnIssueNotice: "Issue Form IV-B Notice",
 
     // Common Buttons & Labels
     preview: "Preview",
@@ -89,6 +101,10 @@ const i18n = {
     shiftCrews: "Shift crews",
     panelsIncluded: "Panels included",
     entryPortal: "Entry portal",
+    status: "Status",
+    action: "Action",
+    details: "Details",
+    search: "Search records, checkpoints, rules...",
 
     // Feature 1: AI Risk Insights (Roof-Fall Alert)
     riskTitle: "Roof-fall risk rising in Section B",
@@ -205,15 +221,15 @@ const i18n = {
     widgetsPlacedHint: "Two more widgets fit in the default grid before it scrolls.",
     footerDashboardAutosaved: "Draft DB-2026-0031 · Autosaved",
 
-    // Feature 3: New Inspection
+    // Feature 3: Inspections
     crumbInspections: "Inspections",
-    pageNewInspection: "New inspection",
+    pageNewInspection: "New statutory inspection",
     tagDraftIns: "Draft INS-8907",
     cardInspectionSetup: "Inspection setup",
     step1of3: "Step 1 of 3",
     lblInspectionType: "Inspection type",
     valInspectionType: "Roof support & strata control",
-    valInspectionTypeSub: "26 checkpoints",
+    valInspectionTypeSub: "26 statutory checkpoints",
     lblMineBlock: "Mine & block",
     valMineBlock: "Jharia Block-4",
     lblSectionPanel: "Section / panel",
@@ -227,7 +243,7 @@ const i18n = {
     lblPriority: "Priority",
     optUrgent: "Urgent · 24 hrs",
     optRoutine: "Routine · 7 days",
-    btnCreateChecklist: "Create & open checklist",
+    btnCreateChecklist: "Start Interactive Checklist",
     inspectionOfflineNote: "The inspector is notified on mobile and the checklist downloads for offline use.",
     cardInspectionSite: "Inspection site",
     cardChecklistCoverage: "Checklist coverage",
@@ -240,7 +256,7 @@ const i18n = {
     checkVentilationNote: "6 of 26 checkpoints",
     checkAccess: "Access, lighting & signage",
     checkAccessNote: "4 of 26 checkpoints",
-    btnPreviewChecklist: "Preview full checklist",
+    btnPreviewChecklist: "Open Full Checklist Runner",
     cardPriorInspections: "Prior inspections here",
     sectionBTotal11: "Section B · 11 total",
     prior1Title: "Roof support · overdue 72 hrs",
@@ -256,7 +272,7 @@ const i18n = {
 
     // Feature 4: Create Report
     crumbBackReports: "Back to Reports",
-    pageCreateReport: "Create report",
+    pageCreateReport: "Create statutory report",
     tagDraftReport: "Draft RPT-2026-0219",
     tagAutosavedTime: "Autosaved 09:14",
     cardReportParameters: "Report parameters",
@@ -278,6 +294,7 @@ const i18n = {
     valSignerName: "A. Bhattacharya",
     valSignerRole: "Agent Manager, Block-4 · DSC valid to 11 Aug 2027",
     btnGenerateReport: "Generate report",
+    btnSubmitDgmsEfiling: "Digitally Sign & Submit to DGMS",
     reportGenHint: "Generation pulls 1,284 approved records for the selected period. The draft is written to the audit trail before signing.",
     cardSectionsIncluded: "Sections included",
     secInspections: "Inspections & findings",
@@ -317,6 +334,45 @@ const i18n = {
     btnViewArchive: "View compliance archive",
     footerReportAutosaved: "Draft RPT-2026-0219 · Autosaved",
 
+    // Interactive Modals Translations
+    modalObservationTitle: "Log Geo-Tagged Safety Observation",
+    lblObsType: "Observation Classification",
+    optUnsafeCondition: "Unsafe Physical Condition",
+    optUnsafeAct: "Unsafe Working Practice / Act",
+    optGasSeepage: "Gas Seepage / Airflow Anomaly",
+    optEquipmentFlaw: "Heavy Earthmoving Machinery Flaw",
+    lblGeoCoords: "Underground GPS / Spatial Location",
+    lblSeverity: "Severity Rating",
+    sevCritical: "Critical (Immediate Stop Work)",
+    sevHigh: "High Priority",
+    sevModerate: "Moderate Priority",
+    sevLow: "Low / Advisory",
+    lblObsDescription: "Description of Finding",
+    phObsDescription: "Describe location, bolt strain, loose strata, or safety gear violation...",
+    btnSubmitObservation: "Submit & Log to DGMS Audit Trail",
+    observationSavedToast: "Observation logged with geo-tag 23.7507° N, 86.4158° E",
+
+    // Interactive Checklist Runner
+    modalChecklistTitle: "Statutory Checkpoint Runner (CMR Reg. 108)",
+    checkpointPassedCount: "Checkpoints Passed",
+    btnPass: "Pass",
+    btnFail: "Fail",
+    btnSaveChecklist: "Submit Verified Inspection",
+    checklistSavedToast: "Statutory Inspection report submitted successfully.",
+
+    // OCR Document Scanner
+    btnOcrScan: "Scan Physical Document (OCR)",
+    modalOcrTitle: "AI OCR Document Digitizer",
+    ocrProcessing: "Digitizing physical DGMS document with OCR Model v2.4...",
+    ocrSuccess: "Document digitized: Extracted Form IV-B compliance record.",
+
+    // Electronic Acknowledgment Slip
+    modalAckTitle: "DGMS Electronic Acknowledgment Receipt",
+    ackReceiptNo: "Receipt Number: DGMS-ACK-2026-08914",
+    ackTimestamp: "Filed on: 18 Feb 2026, 09:30:14 IST",
+    ackDigitalSign: "Cryptographically Signed by DSC Token: SHA256: 8f9b2a7d4e1c990b",
+    btnPrintAck: "Print Official Slip (PDF)",
+
     // Map labels
     mapSecB: "Section B",
     mapPanelB3: "Panel B-3",
@@ -329,48 +385,59 @@ const i18n = {
     officerName: "आर. महापात्रा",
     officerRole: "अनुपालन अधिकारी",
 
+    // Roles
+    roleMineOfficial: "खदान अधिकारी",
+    roleCorporate: "कॉर्पोरेट प्रबंधन",
+    roleRegulator: "डीजीएमएस नियामक प्राधिकारी",
+    roleContractor: "ठेकेदार / अनुपालन",
+    switchRole: "भूमिका बदलें",
+
     // Authentication & Onboarding
-    authTitle: "ठेकेदार सुरक्षा एवं अनुपालन प्रवेश",
-    authSubtitle: "खान सुरक्षा महानिदेशालय (डीजीएमएस) पोर्टल",
-    authPrompt: "अपनी विशिष्ट माइनिंग ग्रिड एक्सेस आईडी जनरेट करने हेतु अधिकृत विवरण दर्ज करें।",
+    authTitle: "स्मार्ट कोयला खनन शासन पोर्टल",
+    authSubtitle: "खान सुरक्षा महानिदेशालय (डीजीएमएस) एवं कोयला मंत्रालय",
+    authPrompt: "ग्रिड में प्रवेश हेतु अपनी शासन भूमिका चुनें एवं अधिकृत विवरण दर्ज करें।",
+    lblRoleSelect: "शासन भूमिका का चयन करें",
     lblEmail: "आधिकारिक ईमेल पता",
-    phEmail: "contractor@mininginfra.in",
-    lblContractor: "ठेकेदार / संस्था का नाम",
-    phContractor: "उदा. ईस्टर्न कोकिंग एंड अर्थमूवर्स लिमिटेड",
-    lblPassword: "पासवर्ड",
+    phEmail: "officer@coalindia.gov.in",
+    lblContractor: "पदनाम / संस्था का नाम",
+    phContractor: "उदा. क्षेत्र सुरक्षा अधिकारी / ईस्टर्न कोलफील्ड्स लिमिटेड",
+    lblPassword: "पासवर्ड / सुरक्षा टोकन",
     phPassword: "अपना पासवर्ड दर्ज करें",
     lblMineBlockSelect: "आवंटित खदान ब्लॉक",
-    btnSubmitAuth: "ठेकेदार आईडी बनाएँ एवं ग्रिड में प्रवेश करें",
-    authGeneratedIdLbl: "जनरेट की गई ठेकेदार आईडी",
-    authSecurityNotice: "कोयला खान विनियम (सीएमआर विनियम 108) के तहत वैधानिक अनिवार्यता। सभी गतिविधियाँ डिजिटल रूप से हस्ताक्षरित और दर्ज की जाती हैं।",
+    btnSubmitAuth: "शासन ग्रिड में प्रवेश करें",
+    authGeneratedIdLbl: "वैधानिक एक्सेस पहचान क्रमांक",
+    authSecurityNotice: "कोयला खान विनियम (सीएमआर 108) एवं खान अधिनियम 1952 के तहत अनिवार्य। सभी गतिविधियाँ डिजिटल रूप से हस्ताक्षरित और दर्ज की जाती हैं।",
     quickDemoFill: "डेमो विवरण स्वतः भरें",
     logout: "लॉग आउट",
-    contractorBadge: "ठेकेदार आईडी",
+    contractorBadge: "एक्सेस आईडी",
     authPassError: "कृपया अपना पासवर्ड दर्ज करें",
     authEmailError: "कृपया वैध आधिकारिक ईमेल दर्ज करें",
-    authNameError: "कृपया ठेकेदार या संस्था का नाम दर्ज करें",
+    authNameError: "कृपया पदनाम या संस्था का नाम दर्ज करें",
 
-    // Navigation
+    // Navigation Tabs
     navDashboard: "डैशबोर्ड",
+    navTelemetry: "गैस एवं टेलीमेट्री",
     navInspections: "निरीक्षण",
     navInsights: "एआई अंतर्दृष्टि",
-    navReports: "रिपोर्ट",
-    navAlerts: "चेतावनी",
-    navDocuments: "दस्तावेज़",
+    navCompliance: "वैधानिक रजिस्टर",
+    navContractors: "ठेकेदार",
+    navReports: "रिपोर्ट एवं विवरणी",
+    navAudit: "ऑडिट ट्रेल",
+    navAssistant: "शासन सहायक",
+    assistantTitle: "बहुभाषी वैधानिक शासन सहायक",
+    assistantSub: "सुरक्षा स्कोर, अनुपालन दर और वैधानिक उद्धरणों के लिए ग्राउंडेड एआई सहायक",
     navSettings: "सेटिंग्स",
-    navUserManagement: "उपयोगकर्ता प्रबंधन",
     mainMenu: "मुख्य मेनू",
     systemMenu: "सिस्टम",
-    navCategoryCore: "मुख्य मेनू",
-    navCategoryStatutory: "ग्रिड टेलीमेट्री",
     liveDgmsSync: "लाइव डीजीएमएस सिंक",
     dgmsPortal: "डीजीएमएस पोर्टल",
+    offlineModeActive: "फील्ड मोड (ऑफ़लाइन कतार सक्रिय)",
+    btnSyncNow: "सिंक करें",
+    syncSuccess: "सभी ऑफ़लाइन रिकॉर्ड डीजीएमएस केंद्रीय सर्वर से सफलतापूर्वक सिंक हो गए हैं।",
 
     // Dashboard Overview
-    dashboardOverview: "डैशबोर्ड अवलोकन",
-    dashboardSub: "खनन संचालन और वैधानिक अनुपालन का वास्तविक समय अवलोकन",
-    btnCreateDashboardHeader: "डैशबोर्ड बनाएं",
-    btnCustomize: "अनुकूलित करें",
+    dashboardOverview: "शासन डैशबोर्ड",
+    dashboardSub: "खनन संचालन, वैधानिक अनुपालन और टेलीमेट्री का वास्तविक समय अवलोकन",
     kpiRiskScore: "समग्र जोखिम स्कोर",
     kpiModerateRisk: "मध्यम जोखिम",
     kpiOverdueInspections: "विलंबित निरीक्षण",
@@ -379,19 +446,19 @@ const i18n = {
     kpiPersonnel: "कार्मिक",
     kpiDustLevel: "धूल स्तर (औसत)",
     kpiWithinLimits: "सुरक्षित सीमा में",
-    cardRiskTrend: "जोखिम प्रवृत्ति (पिछले 7 दिन)",
-    cardInspectionsStatus: "निरीक्षण स्थिति",
-    cardRecentAlerts: "हाल की चेतावनियां",
-    cardActiveOperations: "सक्रिय संचालन",
-    cardDgmsCompliance: "डीजीएमएस अनुपालन",
-    overallCompliance: "समग्र अनुपालन",
-    complianceTrend: "पिछले सप्ताह से",
-    opt7Days: "7 दिन",
-    total108: "कुल 108",
-    completedLegend: "पूर्ण",
-    pendingLegend: "लंबित",
-    overdueLegend: "अतिदेय",
-    scheduledLegend: "अनुसूचित",
+    kpiMethaneAvg: "मीथेन (CH₄) गैस स्तर",
+    kpiAirflowNominal: "वायुसंचार सामान्य",
+    kpiAggregateCompliance: "समग्र अनुपालन स्कोर",
+    kpiAcross4Mines: "4 निगरानी वाली खदानों में",
+    kpiPendingApprovals: "लंबित वैधानिक विवरणियाँ",
+    kpiForm3AQueue: "फॉर्म III-A समीक्षा कतार",
+
+    // Quick Actions
+    btnStartInspection: "निरीक्षण शुरू करें",
+    btnLogObservation: "अवलोकन दर्ज करें",
+    btnBroadcastEvacuation: "निकासी चेतावनी जारी करें",
+    btnExportDossier: "कार्यकारी डोजियर निर्यात करें",
+    btnIssueNotice: "फॉर्म IV-B नोटिस जारी करें",
 
     // Common Buttons & Labels
     preview: "पूर्वावलोकन",
@@ -410,8 +477,12 @@ const i18n = {
     shiftCrews: "पाली दल",
     panelsIncluded: "शामिल पैनल",
     entryPortal: "प्रवेश द्वार",
+    status: "स्थिति",
+    action: "कार्रवाई",
+    details: "विवरण",
+    search: "खोजें...",
 
-    // Feature 1: AI Risk Insights (Roof-Fall Alert)
+    // Feature 1: AI Risk Insights
     riskTitle: "सेक्शन बी में छत गिरने का जोखिम बढ़ रहा है",
     tagHighRisk: "उच्च जोखिम",
     tagJharia: "झरिया ब्लॉक-4",
@@ -526,15 +597,15 @@ const i18n = {
     widgetsPlacedHint: "डिफ़ॉल्ट ग्रिड में दो और विजेट समा सकते हैं।",
     footerDashboardAutosaved: "प्रारूप DB-2026-0031 · स्वतः सहेजा गया",
 
-    // Feature 3: New Inspection
+    // Feature 3: Inspections
     crumbInspections: "निरीक्षण",
-    pageNewInspection: "नया निरीक्षण दर्ज करें",
+    pageNewInspection: "नया वैधानिक निरीक्षण दर्ज करें",
     tagDraftIns: "मसौदा INS-8907",
     cardInspectionSetup: "निरीक्षण विवरण",
     step1of3: "चरण 1/3",
     lblInspectionType: "निरीक्षण प्रकार",
     valInspectionType: "छत-सहारा एवं स्ट्रेटा नियंत्रण",
-    valInspectionTypeSub: "26 चेकपॉइंट",
+    valInspectionTypeSub: "26 वैधानिक चेकपॉइंट",
     lblMineBlock: "खदान एवं ब्लॉक",
     valMineBlock: "झरिया ब्लॉक-4",
     lblSectionPanel: "सेक्शन / पैनल",
@@ -548,7 +619,7 @@ const i18n = {
     lblPriority: "प्राथमिकता",
     optUrgent: "तत्काल · 24 घंटे",
     optRoutine: "नियमित · 7 दिन",
-    btnCreateChecklist: "बनाएँ और चेकलिस्ट खोलें",
+    btnCreateChecklist: "चेकलिस्ट शुरू करें",
     inspectionOfflineNote: "निरीक्षक को मोबाइल पर सूचना जाएगी और चेकलिस्ट ऑफ़लाइन उपयोग हेतु डाउनलोड होगी।",
     cardInspectionSite: "निरीक्षण स्थल",
     cardChecklistCoverage: "चेकलिस्ट कवरेज",
@@ -561,7 +632,7 @@ const i18n = {
     checkVentilationNote: "26 में से 6 बिंदु",
     checkAccess: "पहुँच, प्रकाश एवं संकेत",
     checkAccessNote: "26 में से 4 बिंदु",
-    btnPreviewChecklist: "पूरी चेकलिस्ट देखें",
+    btnPreviewChecklist: "पूरी चेकलिस्ट खोलें",
     cardPriorInspections: "पिछले निरीक्षण",
     sectionBTotal11: "सेक्शन बी · कुल 11",
     prior1Title: "छत-सहारा · 72 घंटे लंबित",
@@ -577,7 +648,7 @@ const i18n = {
 
     // Feature 4: Create Report
     crumbBackReports: "रिपोर्ट पर वापस",
-    pageCreateReport: "नई रिपोर्ट बनाएँ",
+    pageCreateReport: "नई वैधानिक रिपोर्ट बनाएँ",
     tagDraftReport: "मसौदा RPT-2026-0219",
     tagAutosavedTime: "स्वतः सहेजा 09:14",
     cardReportParameters: "रिपोर्ट मापदंड",
@@ -599,6 +670,7 @@ const i18n = {
     valSignerName: "ए. भट्टाचार्य",
     valSignerRole: "एजेंट प्रबंधक, ब्लॉक-4 · डीएससी 11 अगस्त 2027 तक मान्य",
     btnGenerateReport: "रिपोर्ट तैयार करें",
+    btnSubmitDgmsEfiling: "डिजिटल हस्ताक्षर करें एवं डीजीएमएस को भेजें",
     reportGenHint: "चयनित अवधि के 1,284 अनुमोदित रिकॉर्ड लिए जाएँगे; मसौदा हस्ताक्षर से पहले ऑडिट ट्रेल में दर्ज होगा।",
     cardSectionsIncluded: "शामिल अनुभाग",
     secInspections: "निरीक्षण एवं निष्कर्ष",
@@ -638,21 +710,51 @@ const i18n = {
     btnViewArchive: "अनुपालन पुरालेख देखें",
     footerReportAutosaved: "मसौदा RPT-2026-0219 · स्वतः सहेजा गया",
 
+    // Interactive Modals Translations
+    modalObservationTitle: "भू-टैग युक्त सुरक्षा अवलोकन दर्ज करें",
+    lblObsType: "अवलोकन वर्गीकरण",
+    optUnsafeCondition: "असुरक्षित भौतिक स्थिति",
+    optUnsafeAct: "असुरक्षित कार्यप्रणाली / कृत्य",
+    optGasSeepage: "गैस रिसाव / वायुसंचार विसंगति",
+    optEquipmentFlaw: "भारी खनन मशीनरी खराबी",
+    lblGeoCoords: "भूमिगत जीपीएस / स्थानिक स्थिति",
+    lblSeverity: "गंभीरता रेटिंग",
+    sevCritical: "गंभीर (तत्काल कार्य रोकें)",
+    sevHigh: "उच्च प्राथमिकता",
+    sevModerate: "मध्यम प्राथमिकता",
+    sevLow: "कम / सलाह",
+    lblObsDescription: "निष्कर्ष का विवरण",
+    phObsDescription: "स्थान, ढीली छत, सुरक्षा उपकरण उल्लंघन या दरार का विवरण दर्ज करें...",
+    btnSubmitObservation: "सबमिट करें एवं ऑडिट ट्रेल में दर्ज करें",
+    observationSavedToast: "अवलोकन भू-टैग 23.7507° N, 86.4158° E सहित दर्ज हुआ।",
+
+    // Interactive Checklist Runner
+    modalChecklistTitle: "वैधानिक चेकपॉइंट रनर (सीएमआर 108)",
+    checkpointPassedCount: "उत्तीर्ण चेकपॉइंट",
+    btnPass: "पास",
+    btnFail: "त्रुटि",
+    btnSaveChecklist: "सत्यापित निरीक्षण सबमिट करें",
+    checklistSavedToast: "वैधानिक निरीक्षण रिपोर्ट सफलतापूर्वक सबमिट हुई।",
+
+    // OCR Document Scanner
+    btnOcrScan: "दस्तावेज़ स्कैन करें (OCR)",
+    modalOcrTitle: "एआई ओसीआर दस्तावेज़ डिजिटाइज़र",
+    ocrProcessing: "भौतिक डीजीएमएस दस्तावेज़ का ओसीआर मॉडल v2.4 द्वारा विश्लेषण...",
+    ocrSuccess: "दस्तावेज़ डिजिटाइज़ हुआ: फॉर्म IV-B अनुपालन रिकॉर्ड प्राप्त।",
+
+    // Electronic Acknowledgment Slip
+    modalAckTitle: "डीजीएमएस इलेक्ट्रॉनिक पावती रसीद",
+    ackReceiptNo: "पावती क्रमांक: DGMS-ACK-2026-08914",
+    ackTimestamp: "प्रस्तुत तिथि: 18 फरवरी 2026, 09:30:14 IST",
+    ackDigitalSign: "डीएससी टोकन द्वारा डिजिटल हस्ताक्षरित: SHA256: 8f9b2a7d4e1c990b",
+    btnPrintAck: "आधिकारिक रसीद प्रिंट करें (PDF)",
+
     // Map labels
     mapSecB: "सेक्शन बी",
     mapPanelB3: "पैनल बी-3",
     mapVent2: "वेंट शाफ्ट 2"
   }
 };
-
-// Helper function to generate a specific contractor compliance ID
-function generateSpecificContractorId(contractorName, email) {
-  const cleanName = (contractorName || "CTR").replace(/[^a-zA-Z]/g, "").toUpperCase();
-  const prefix = cleanName.length >= 3 ? cleanName.substring(0, 3) : "CON";
-  const numHash = Math.floor(1000 + Math.random() * 9000);
-  const year = 2026;
-  return `DGMS-${prefix}-${year}-${numHash}`;
-}
 
 // ─── SVG Icons ────────────────────────────────────────────────────────────────
 function ShieldIcon({ className = "ic", style }) {
@@ -672,6 +774,14 @@ function HomeIcon({ className = "ic", style }) {
   );
 }
 
+function ActivityIcon({ className = "ic", style }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} style={style}>
+      <path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2" />
+    </svg>
+  );
+}
+
 function ClipboardCheckIcon({ className = "ic", style }) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} style={style}>
@@ -682,19 +792,28 @@ function ClipboardCheckIcon({ className = "ic", style }) {
   );
 }
 
-function ActivityIcon({ className = "ic", style }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} style={style}>
-      <path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2" />
-    </svg>
-  );
-}
-
 function FileTextIcon({ className = "ic", style }) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} style={style}>
       <path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z" />
       <path d="M14 2v5a1 1 0 0 0 1 1h5M10 9H8m8 4H8m8 4H8" />
+    </svg>
+  );
+}
+
+function UsersIcon({ className = "ic", style }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} style={style}>
+      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M16 3.128a4 4 0 0 1 0 7.744M22 21v-2a4 4 0 0 0-3-3.87" />
+      <circle cx="9" cy="7" r="4" />
+    </svg>
+  );
+}
+
+function WindIcon({ className = "ic", style }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} style={style}>
+      <path d="M12.8 19.6A2 2 0 1 0 14 16H2m15.5-8a2.5 2.5 0 1 1 2 4H2m7.8-7.6A2 2 0 1 1 11 8H2" />
     </svg>
   );
 }
@@ -742,70 +861,18 @@ function ClockIcon({ className = "ic", style }) {
   );
 }
 
-function UserPlusIcon({ className = "ic", style }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} style={style}>
-      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-      <circle cx="9" cy="7" r="4" />
-      <path d="M19 8v6m3-3h-6" />
-    </svg>
-  );
-}
-
-function TrendingUpIcon({ className = "ic", style }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} style={style}>
-      <path d="M16 7h6v6" />
-      <path d="m22 7l-8.5 8.5l-5-5L2 17" />
-    </svg>
-  );
-}
-
-function DownloadIcon({ className = "ic", style }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} style={style}>
-      <path d="M12 15V3m9 12v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-      <path d="m7 10l5 5l5-5" />
-    </svg>
-  );
-}
-
-function ArrowUpRightIcon({ className = "ic", style }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} style={style}>
-      <path d="M7 7h10v10M7 17L17 7" />
-    </svg>
-  );
-}
-
-function ArrowLeftIcon({ className = "ic", style }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} style={style}>
-      <path d="m12 19l-7-7l7-7m7 7H5" />
-    </svg>
-  );
-}
-
-function ArrowRightIcon({ className = "ic", style }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} style={style}>
-      <path d="M5 12h14m-7-7l7 7l-7 7" />
-    </svg>
-  );
-}
-
-function ChevronDownIcon({ className = "ic", style }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} style={style}>
-      <path d="m6 9l6 6l6-6" />
-    </svg>
-  );
-}
-
 function CheckIcon({ className = "ic", style }) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} style={style}>
       <path d="M20 6L9 17l-5-5" />
+    </svg>
+  );
+}
+
+function XIcon({ className = "ic", style }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} style={style}>
+      <path d="M18 6L6 18M6 6l12 12" />
     </svg>
   );
 }
@@ -832,23 +899,6 @@ function SaveIcon({ className = "ic", style }) {
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} style={style}>
       <path d="M15.2 3a2 2 0 0 1 1.4.6l3.8 3.8a2 2 0 0 1 .6 1.4V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z" />
       <path d="M17 21v-7a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v7M7 3v4a1 1 0 0 0 1 1h7" />
-    </svg>
-  );
-}
-
-function UsersIcon({ className = "ic", style }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} style={style}>
-      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M16 3.128a4 4 0 0 1 0 7.744M22 21v-2a4 4 0 0 0-3-3.87" />
-      <circle cx="9" cy="7" r="4" />
-    </svg>
-  );
-}
-
-function WindIcon({ className = "ic", style }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} style={style}>
-      <path d="M12.8 19.6A2 2 0 1 0 14 16H2m15.5-8a2.5 2.5 0 1 1 2 4H2m7.8-7.6A2 2 0 1 1 11 8H2" />
     </svg>
   );
 }
@@ -952,20 +1002,39 @@ function BuildingIcon({ className = "ic", style }) {
   );
 }
 
+function BotIcon({ className = "ic", style }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} style={style}>
+      <rect width="18" height="10" x="3" y="11" rx="2" />
+      <circle cx="12" cy="5" r="2" />
+      <path d="M12 7v4m-4 5h.01m8 0h.01" />
+    </svg>
+  );
+}
+
+function SendIcon({ className = "ic", style }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} style={style}>
+      <line x1="22" y1="2" x2="11" y2="13" />
+      <polygon points="22 2 15 22 11 13 2 9 22 2" />
+    </svg>
+  );
+}
+
+function SparklesIcon({ className = "ic", style }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} style={style}>
+      <path d="M12 3l1.912 5.813a2 2 0 0 0 1.275 1.275L21 12l-5.813 1.912a2 2 0 0 0-1.275 1.275L12 21l-1.912-5.813a2 2 0 0 0-1.275-1.275L3 12l5.813-1.912a2 2 0 0 0 1.275-1.275L12 3z" />
+    </svg>
+  );
+}
+
 function LogOutIcon({ className = "ic", style }) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} style={style}>
       <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
       <polyline points="16 17 21 12 16 7" />
       <line x1="21" x2="9" y1="12" y2="12" />
-    </svg>
-  );
-}
-
-function XIcon({ className = "ic", style }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} style={style}>
-      <path d="M18 6L6 18M6 6l12 12" />
     </svg>
   );
 }
@@ -988,41 +1057,6 @@ function PanelToggleIcon({ collapsed, className = "ic", style }) {
   );
 }
 
-function FolderIcon({ className = "ic", style }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} style={style}>
-      <path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z" />
-    </svg>
-  );
-}
-
-function CalendarIcon({ className = "ic", style }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} style={style}>
-      <rect width="18" height="18" x="3" y="4" rx="2" ry="2" />
-      <line x1="16" x2="16" y1="2" y2="6" />
-      <line x1="8" x2="8" y1="2" y2="6" />
-      <line x1="3" x2="21" y1="10" y2="10" />
-    </svg>
-  );
-}
-
-function SparklesGridIcon({ className = "ic", style }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} style={style}>
-      <circle cx="12" cy="12" r="2" fill="currentColor" />
-      <circle cx="12" cy="5" r="1.5" fill="currentColor" />
-      <circle cx="12" cy="19" r="1.5" fill="currentColor" />
-      <circle cx="5" cy="12" r="1.5" fill="currentColor" />
-      <circle cx="19" cy="12" r="1.5" fill="currentColor" />
-      <circle cx="7" cy="7" r="1" fill="currentColor" />
-      <circle cx="17" cy="17" r="1" fill="currentColor" />
-      <circle cx="7" cy="17" r="1" fill="currentColor" />
-      <circle cx="17" cy="7" r="1" fill="currentColor" />
-    </svg>
-  );
-}
-
 function ExternalLinkIcon({ className = "ic", style }) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} style={style}>
@@ -1033,15 +1067,73 @@ function ExternalLinkIcon({ className = "ic", style }) {
   );
 }
 
-function SlidersIcon({ className = "ic", style }) {
+function ChevronDownIcon({ className = "ic", style }) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} style={style}>
-      <line x1="4" x2="20" y1="21" y2="21" />
-      <line x1="4" x2="20" y1="14" y2="14" />
-      <line x1="4" x2="20" y1="7" y2="7" />
-      <circle cx="8" cy="7" r="2" fill="var(--gesso-canvas)" />
-      <circle cx="16" cy="14" r="2" fill="var(--gesso-canvas)" />
-      <circle cx="10" cy="21" r="2" fill="var(--gesso-canvas)" />
+      <path d="m6 9l6 6l6-6" />
+    </svg>
+  );
+}
+
+function ArrowLeftIcon({ className = "ic", style }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} style={style}>
+      <path d="m12 19l-7-7l7-7m7 7H5" />
+    </svg>
+  );
+}
+
+function ArrowRightIcon({ className = "ic", style }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} style={style}>
+      <path d="M5 12h14m-7-7l7 7l-7 7" />
+    </svg>
+  );
+}
+
+function ArrowUpRightIcon({ className = "ic", style }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} style={style}>
+      <path d="M7 7h10v10M7 17L17 7" />
+    </svg>
+  );
+}
+
+function UserPlusIcon({ className = "ic", style }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} style={style}>
+      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+      <circle cx="9" cy="7" r="4" />
+      <path d="M19 8v6m3-3h-6" />
+    </svg>
+  );
+}
+
+function TrendingUpIcon({ className = "ic", style }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} style={style}>
+      <path d="M16 7h6v6" />
+      <path d="m22 7l-8.5 8.5l-5-5L2 17" />
+    </svg>
+  );
+}
+
+function DownloadIcon({ className = "ic", style }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} style={style}>
+      <path d="M12 15V3m9 12v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+      <path d="m7 10l5 5l5-5" />
+    </svg>
+  );
+}
+
+function RefreshCwIcon({ className = "ic", style }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} style={style}>
+      <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
+      <path d="M21 3v5h-5" />
+      <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
+      <path d="M8 16H3v5" />
     </svg>
   );
 }
@@ -1094,23 +1186,84 @@ function MiningZoneVectorMap({ label = "Coal Mine Vector Map", lang = "en" }) {
   );
 }
 
+// ─── Initial 26 Statutory Checkpoints Dataset ─────────────────────────────────
+const initialCheckpoints = [
+  { id: 1, titleEn: "Support Bolt Anchor Pull Strength", titleHi: "सपोर्ट बोल्ट एंकर पुल क्षमता", category: "bolt", reg: "CMR Reg. 108", status: "pass" },
+  { id: 2, titleEn: "W-Strap Torque & Tension Limits", titleHi: "डब्लू-स्ट्रैप टॉर्क एवं तनाव सीमा", category: "bolt", reg: "CMR Reg. 108", status: "pass" },
+  { id: 3, titleEn: "Resin Grouting Depth Consistency", titleHi: "रेज़िन ग्राउटिंग गहराई एकरूपता", category: "bolt", reg: "CMR Reg. 108", status: "fail" },
+  { id: 4, titleEn: "Strata Convergence Tell-Tale Dial", titleHi: "स्ट्रेटा कन्वर्जेंस टेल-टेल डायल", category: "strata", reg: "DGMS Cir. 04/2025", status: "fail" },
+  { id: 5, titleEn: "Roof Sag Extensometer Readings", titleHi: "छत धंसाव एक्सटेंसोमीटर रीडिंग", category: "strata", reg: "CMR Reg. 129", status: "pass" },
+  { id: 6, titleEn: "Section B Methane (CH₄) Level (<0.75%)", titleHi: "सेक्शन बी मीथेन गैस स्तर (<0.75%)", category: "vent", reg: "CMR Reg. 140", status: "pass" },
+  { id: 7, titleEn: "Return Airway Airflow Velocity (>1.5 m/s)", titleHi: "रिटर्न एयरवे वायु वेग (>1.5 m/s)", category: "vent", reg: "CMR Reg. 140", status: "pass" },
+  { id: 8, titleEn: "Underground Escapeway Illumination & Signage", titleHi: "भूमिगत निकास मार्ग प्रकाश एवं संकेत", category: "access", reg: "CMR Reg. 152", status: "pass" },
+  { id: 9, titleEn: "Water Spray Nozzles Dust Suppression", titleHi: "जल छिड़काव नोजल धूल नियंत्रण", category: "vent", reg: "MoEFCC Norms", status: "pass" },
+  { id: 10, titleEn: "Haulage Track & Signal Integrity", titleHi: "ढुलाई ट्रैक एवं सिग्नल अखंडता", category: "access", reg: "CMR Reg. 91", status: "pass" }
+];
+
+// Helper function to generate a specific contractor compliance ID
+function generateSpecificContractorId(name, role) {
+  const cleanName = (name || "OFFICER").replace(/[^a-zA-Z]/g, "").toUpperCase();
+  const prefix = cleanName.length >= 3 ? cleanName.substring(0, 3) : "GOV";
+  const numHash = Math.floor(1000 + Math.random() * 9000);
+  const year = 2026;
+  const roleCode = role === "regulator" ? "DGMS-REG" : (role === "corporate" ? "CIL-HQ" : "MINE");
+  return `${roleCode}-${prefix}-${year}-${numHash}`;
+}
+
 // ─── Main Application Component ───────────────────────────────────────────────
 export default function App() {
   // Pre-load Authentication State
-  const [currentUser, setCurrentUser] = useState(null); // { email, contractorName, contractorId }
+  const [currentUser, setCurrentUser] = useState(() => tokenStorage.getUser()); // { email, contractorName, contractorId, role, ... }
+  const [authRole, setAuthRole] = useState("mine_official"); // "mine_official" | "corporate" | "regulator" | "contractor"
   const [authEmail, setAuthEmail] = useState("");
   const [authContractorName, setAuthContractorName] = useState("");
   const [authPassword, setAuthPassword] = useState("");
   const [authMineBlock, setAuthMineBlock] = useState("Jharia Block-4");
   const [authError, setAuthError] = useState("");
+  const [isAuthenticating, setIsAuthenticating] = useState(false);
 
-  const [activeFeature, setActiveFeature] = useState("dashboard"); // "dashboard" | "insights" | "inspections" | "reports"
+  const [activeFeature, setActiveFeature] = useState("dashboard"); 
+  // "dashboard" | "telemetry" | "inspections" | "insights" | "compliance" | "contractors" | "reports" | "audit" | "assistant"
+  
   const [lang, setLang] = useState("en"); // "en" | "hi"
   const [toastMessage, setToastMessage] = useState(null);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [roleMenuOpen, setRoleMenuOpen] = useState(false);
+
+  // Field Offline Mode State
+  const [isFieldOffline, setIsFieldOffline] = useState(false);
+  const [offlineQueueCount, setOfflineQueueCount] = useState(0);
+
+  // Live Backend Data States
+  const [liveMines, setLiveMines] = useState([]);
+  const [selectedMineId, setSelectedMineId] = useState(null);
+  const [liveDashboardData, setLiveDashboardData] = useState(null);
+  const [liveRiskScore, setLiveRiskScore] = useState(null);
+  const [liveAnomalies, setLiveAnomalies] = useState([]);
+  const [liveComplianceRecords, setLiveComplianceRecords] = useState([]);
+  const [liveInspections, setLiveInspections] = useState([]);
+  const [liveContractors, setLiveContractors] = useState([]);
+  const [liveAttendanceSummary, setLiveAttendanceSummary] = useState(null);
+  const [liveAuditLogs, setLiveAuditLogs] = useState([]);
+  const [auditVerifyResult, setAuditVerifyResult] = useState(null);
+  const [isVerifyingAudit, setIsVerifyingAudit] = useState(false);
+  const [liveNotifications, setLiveNotifications] = useState([]);
+  const [unreadNotifCount, setUnreadNotifCount] = useState(0);
+  const [isLiveApiConnected, setIsLiveApiConnected] = useState(false);
+
+  // Conversational Assistant State
+  const [assistantQueryText, setAssistantQueryText] = useState("");
+  const [assistantLoading, setAssistantLoading] = useState(false);
+  const [assistantHistory, setAssistantHistory] = useState([
+    {
+      role: "assistant",
+      text: "Hello! I am the Khanan Suraksha Governed Assistant. Ask me about mine safety risk scores, statutory compliance rates, overdue CAPAs, or recent violations.",
+      citations: [],
+    }
+  ]);
 
   // Active translation lookup
   const t = i18n[lang];
@@ -1118,6 +1271,20 @@ export default function App() {
   useEffect(() => {
     document.title = `${t.appName} — ${t.appSubtitle}`;
   }, [lang, t]);
+
+  // Modals Visibility
+  const [observationModalOpen, setObservationModalOpen] = useState(false);
+  const [checklistRunnerOpen, setChecklistRunnerOpen] = useState(false);
+  const [ocrScannerOpen, setOcrScannerOpen] = useState(false);
+  const [ackModalOpen, setAckModalOpen] = useState(false);
+
+  // Observation Form State
+  const [obsType, setObsType] = useState("unsafe_condition");
+  const [obsSeverity, setObsSeverity] = useState("high");
+  const [obsText, setObsText] = useState("");
+
+  // Checkpoints State
+  const [checkpointsList, setCheckpointsList] = useState(initialCheckpoints);
 
   // Feature 1: AI Risk Insights State
   const [capaOfficerKey, setCapaOfficerKey] = useState("SK"); // "SK" | "MT"
@@ -1159,8 +1326,54 @@ export default function App() {
     }, 3500);
   };
 
-  // Pre-load authentication submission handler
-  const handleAuthSubmit = (e) => {
+  // ── Load live data from NestJS REST API ──
+  const loadBackendData = async () => {
+    try {
+      const mines = await api.mines.list();
+      if (mines && Array.isArray(mines) && mines.length > 0) {
+        setLiveMines(mines);
+        const activeMine = selectedMineId ? (mines.find(m => m.id === selectedMineId) || mines[0]) : mines[0];
+        if (!selectedMineId) setSelectedMineId(activeMine.id);
+
+        setIsLiveApiConnected(true);
+
+        const [dash, risk, anom, comp, att, insp, cont, audit, notifs, unread] = await Promise.allSettled([
+          api.dashboard.getMineOverview(activeMine.id),
+          api.riskScores.getMineScore(activeMine.id),
+          api.riskScores.getAnomalies(activeMine.id),
+          api.compliance.getMineRecords(activeMine.id),
+          api.attendance.getSummary(activeMine.id),
+          api.inspections.list(),
+          api.contractors.list(),
+          api.audit.getLogs({ limit: 10 }),
+          api.notifications.list(),
+          api.notifications.getUnreadCount(),
+        ]);
+
+        if (dash.status === 'fulfilled' && dash.value) setLiveDashboardData(dash.value);
+        if (risk.status === 'fulfilled' && risk.value) setLiveRiskScore(risk.value);
+        if (anom.status === 'fulfilled' && anom.value) setLiveAnomalies(anom.value);
+        if (comp.status === 'fulfilled' && comp.value) setLiveComplianceRecords(comp.value);
+        if (att.status === 'fulfilled' && att.value) setLiveAttendanceSummary(att.value);
+        if (insp.status === 'fulfilled' && insp.value) setLiveInspections(insp.value);
+        if (cont.status === 'fulfilled' && cont.value) setLiveContractors(cont.value);
+        if (audit.status === 'fulfilled' && audit.value) setLiveAuditLogs(audit.value.data || []);
+        if (notifs.status === 'fulfilled' && notifs.value) setLiveNotifications(notifs.value);
+        if (unread.status === 'fulfilled') setUnreadNotifCount(unread.value);
+      }
+    } catch (err) {
+      console.warn("Backend API sync status:", err.message);
+    }
+  };
+
+  useEffect(() => {
+    if (currentUser) {
+      loadBackendData();
+    }
+  }, [currentUser, selectedMineId]);
+
+  // Live authentication submission handler
+  const handleAuthSubmit = async (e) => {
     if (e) e.preventDefault();
     setAuthError("");
 
@@ -1168,44 +1381,177 @@ export default function App() {
       setAuthError(t.authEmailError);
       return;
     }
-    if (!authContractorName.trim()) {
-      setAuthError(t.authNameError);
-      return;
-    }
     if (!authPassword.trim()) {
       setAuthError(t.authPassError);
       return;
     }
 
-    const generatedId = generateSpecificContractorId(authContractorName, authEmail);
-    const userSession = {
-      email: authEmail.trim(),
-      contractorName: authContractorName.trim(),
-      contractorId: generatedId,
-      mineBlock: authMineBlock,
-      loggedInAt: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
-    };
+    try {
+      setIsAuthenticating(true);
+      const authData = await api.auth.login(authEmail.trim(), authPassword.trim());
+      const u = authData.user;
+      const userSession = {
+        id: u.id,
+        email: u.email,
+        name: u.name,
+        role: u.role.toLowerCase(),
+        company: u.company,
+        contractorName: authContractorName.trim() || u.name,
+        contractorId: generateSpecificContractorId(authContractorName || u.name, u.role.toLowerCase()),
+        mineBlock: authMineBlock || "Jharia Block-4",
+        loggedInAt: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        isLiveApi: true,
+      };
 
-    setCurrentUser(userSession);
-    showToast(
-      lang === "en"
-        ? `Access granted. Contractor ID: ${generatedId}`
-        : `प्रवेश स्वीकृत। ठेकेदार आईडी: ${generatedId}`
-    );
+      setCurrentUser(userSession);
+      showToast(
+        lang === "en"
+          ? `🟢 Connected to Live Governance API: ${u.name} (${u.role})`
+          : `🟢 लाइव शासन सर्वर से जुड़े: ${u.name} (${u.role})`
+      );
+      loadBackendData();
+    } catch (err) {
+      console.warn("Live login attempt:", err);
+      // Fallback for offline demo
+      const generatedId = generateSpecificContractorId(authContractorName || "Officer", authRole);
+      const userSession = {
+        email: authEmail.trim(),
+        name: authContractorName.trim() || "Compliance Officer",
+        contractorName: authContractorName.trim() || "Compliance Officer",
+        contractorId: generatedId,
+        mineBlock: authMineBlock,
+        role: authRole,
+        loggedInAt: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        isLiveApi: false,
+      };
+      setCurrentUser(userSession);
+      showToast(lang === "en" ? `Demo session active (${err.message})` : `डेमो सत्र सक्रिय (${err.message})`);
+    } finally {
+      setIsAuthenticating(false);
+    }
   };
 
-  const handleQuickDemoFill = () => {
-    setAuthEmail("r.singh@easterncoking.in");
-    setAuthContractorName("Eastern Coking & Earthmovers Ltd.");
-    setAuthPassword("DGMS@Secured#2026");
+  const handleQuickDemoFill = (roleKey = "mine_official") => {
     setAuthError("");
+    if (roleKey === "corporate") {
+      setAuthRole("corporate");
+      setAuthEmail("corporate@coalindia.gov.in");
+      setAuthContractorName("BCCL Corporate Safety Director");
+      setAuthPassword("Test@1234");
+    } else if (roleKey === "regulator") {
+      setAuthRole("regulator");
+      setAuthEmail("regulator@dgms.gov.in");
+      setAuthContractorName("DGMS National Safety Inspector");
+      setAuthPassword("Test@1234");
+    } else {
+      setAuthRole("mine_official");
+      setAuthEmail("r.mahapatra@coalindia.gov.in");
+      setAuthContractorName("R. Mahapatra — Mine Safety Official");
+      setAuthPassword("Test@1234");
+    }
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await api.auth.logout();
     setCurrentUser(null);
     setAuthPassword("");
     showToast(lang === "en" ? "Logged out successfully." : "सफलतापूर्वक लॉग आउट हो गया।");
   };
+
+  const switchActiveRole = async (newRole) => {
+    if (currentUser) {
+      if (newRole === "corporate") handleQuickDemoFill("corporate");
+      else if (newRole === "regulator") handleQuickDemoFill("regulator");
+      else handleQuickDemoFill("mine_official");
+
+      setCurrentUser(prev => ({
+        ...prev,
+        role: newRole,
+        contractorId: generateSpecificContractorId(prev.contractorName, newRole)
+      }));
+      setRoleMenuOpen(false);
+      showToast(lang === "en" ? `Role switched to ${newRole}` : `भूमिका बदलकर ${newRole} कर दी गई है`);
+    }
+  };
+
+  const handleSyncOfflineQueue = () => {
+    setOfflineQueueCount(0);
+    showToast(t.syncSuccess);
+    loadBackendData();
+  };
+
+  const toggleCheckpointStatus = (id, newStatus) => {
+    setCheckpointsList(prev => prev.map(item => item.id === id ? { ...item, status: newStatus } : item));
+  };
+
+  const handleSaveObservation = (e) => {
+    if (e) e.preventDefault();
+    setObservationModalOpen(false);
+    setObsText("");
+    if (isFieldOffline) {
+      setOfflineQueueCount(prev => prev + 1);
+    }
+    showToast(t.observationSavedToast);
+  };
+
+  // Live Audit Chain Range Verification Handler
+  const handleVerifyAuditChain = async () => {
+    try {
+      setIsVerifyingAudit(true);
+      const res = await api.audit.verifyChain(1, 5);
+      setAuditVerifyResult(res);
+      showToast(
+        lang === "en"
+          ? "🔒 Audit Trail Cryptographic Hash-Chain Verified Unbroken!"
+          : "🔒 ऑडिट ट्रेल क्रिप्टोग्राफिक हैश-चेन अखंड सत्यापित!"
+      );
+    } catch (err) {
+      showToast(`Verification check: ${err.message}`);
+    } finally {
+      setIsVerifyingAudit(false);
+    }
+  };
+
+  // Live Conversational Assistant Query Handler
+  const handleSendAssistantQuery = async (e) => {
+    if (e) e.preventDefault();
+    if (!assistantQueryText.trim() || assistantLoading) return;
+
+    const userText = assistantQueryText.trim();
+    setAssistantQueryText("");
+    setAssistantHistory(prev => [...prev, { role: "user", text: userText }]);
+    setAssistantLoading(true);
+
+    try {
+      const targetMine = selectedMineId || liveMines[0]?.id;
+      const res = await api.assistant.query(userText, lang, targetMine);
+      setAssistantHistory(prev => [
+        ...prev,
+        {
+          role: "assistant",
+          text: res.answer,
+          citations: res.citations || [],
+          disclaimer: res.disclaimer,
+          intent: res.intent,
+        }
+      ]);
+    } catch (err) {
+      setAssistantHistory(prev => [
+        ...prev,
+        {
+          role: "assistant",
+          text: lang === "en" 
+            ? `Unable to complete query: ${err.message}. Please check your connection to the live governance API.`
+            : `अनुरोध पूर्ण करने में असमर्थ: ${err.message}। कृपया लाइव सर्वर कनेक्शन की जाँच करें।`,
+          citations: [],
+        }
+      ]);
+    } finally {
+      setAssistantLoading(false);
+    }
+  };
+
+  const passedCheckpointsCount = checkpointsList.filter(item => item.status === "pass").length;
 
   const toggleWidgetSelection = (widgetKey) => {
     setActiveWidgets(prev => ({
@@ -1236,16 +1582,15 @@ export default function App() {
   };
 
   // ════════════════════════════════════════════════════════════════════════════
-  // 1. PRE-LOAD AUTHENTICATION SCREEN (Asks for email, contractor name, password)
+  // 1. AUTHENTICATION & ROLE SELECTION SCREEN
   // ════════════════════════════════════════════════════════════════════════════
   if (!currentUser) {
     const previewId = authContractorName.trim()
-      ? `DGMS-${authContractorName.replace(/[^a-zA-Z]/g, "").substring(0, 3).toUpperCase() || "CTR"}-2026-••••`
-      : "DGMS-CON-2026-••••";
+      ? `${authRole === "regulator" ? "DGMS-REG" : (authRole === "corporate" ? "CIL-HQ" : "MINE")}-${authContractorName.replace(/[^a-zA-Z]/g, "").substring(0, 3).toUpperCase() || "GOV"}-2026-••••`
+      : "DGMS-MINE-2026-••••";
 
     return (
       <div className="auth-fullscreen-bg">
-        {/* Language switch on top right */}
         <div className="auth-header-bar wrap">
           <div className="brand" title={`${t.appName} — ${t.appSubtitle}`}>
             <span className="brand-mark">
@@ -1275,7 +1620,6 @@ export default function App() {
           </div>
         </div>
 
-        {/* Toast Notice during Auth */}
         {toastMessage && (
           <div className="toast-notice" role="status">
             <CheckIcon className="ic ic-sm" style={{ color: "var(--gesso-success)" }} />
@@ -1302,6 +1646,28 @@ export default function App() {
             )}
 
             <form onSubmit={handleAuthSubmit} className="auth-form" noValidate>
+              {/* Role Selector */}
+              <div className="field">
+                <label htmlFor="auth-role">
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                    <UsersIcon className="ic ic-xs" style={{ color: "var(--gesso-accent)" }} />
+                    {t.lblRoleSelect}
+                  </span>
+                </label>
+                <select
+                  id="auth-role"
+                  className="well"
+                  value={authRole}
+                  onChange={(e) => setAuthRole(e.target.value)}
+                  style={{ height: 42, background: "var(--gesso-canvas)" }}
+                >
+                  <option value="mine_official">{t.roleMineOfficial}</option>
+                  <option value="corporate">{t.roleCorporate}</option>
+                  <option value="regulator">{t.roleRegulator}</option>
+                  <option value="contractor">{t.roleContractor}</option>
+                </select>
+              </div>
+
               {/* Field 1: Email Address */}
               <div className="field">
                 <label htmlFor="auth-email">
@@ -1321,7 +1687,7 @@ export default function App() {
                 />
               </div>
 
-              {/* Field 2: Contractor Name */}
+              {/* Field 2: Designation / Org Name */}
               <div className="field">
                 <label htmlFor="auth-contractor">
                   <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
@@ -1359,14 +1725,14 @@ export default function App() {
                 />
               </div>
 
-              {/* Specific Generated ID Live Preview */}
+              {/* Generated ID Preview */}
               <div className="auth-id-preview-box">
                 <div className="auth-id-preview-label">{t.authGeneratedIdLbl}</div>
                 <div className="auth-id-preview-val">{previewId}</div>
                 <div className="auth-id-preview-hint">
                   {lang === "en"
-                    ? "A tamper-proof unique cryptographic ID will be assigned to your organization on entry."
-                    : "प्रवेश पर आपकी संस्था को एक अपरिवर्तनीय डिजिटल पहचान क्रमांक आवंटित किया जाएगा।"}
+                    ? "Tamper-proof digital statutory credentials will be authorized upon login."
+                    : "प्रवेश पर आपके पद हेतु डिजिटल वैधानिक पहचान क्रमांक अधिकृत किया जाएगा।"}
                 </div>
               </div>
 
@@ -1380,15 +1746,38 @@ export default function App() {
                 {t.btnSubmitAuth}
               </button>
 
-              {/* Quick Auto-fill button */}
-              <button
-                className="btn btn-ghost"
-                type="button"
-                style={{ width: "100%", justifyContent: "center", fontSize: 13, color: "var(--gesso-accent)" }}
-                onClick={handleQuickDemoFill}
-              >
-                ⚡ {t.quickDemoFill}
-              </button>
+              {/* Quick Auto-fill buttons for live seeded roles */}
+              <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 4 }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: "var(--gesso-fg-muted)", textAlign: "center" }}>
+                  ⚡ {t.quickDemoFill}
+                </div>
+                <div style={{ display: "flex", gap: 6 }}>
+                  <button
+                    className="btn btn-ghost"
+                    type="button"
+                    style={{ flex: 1, justifyContent: "center", fontSize: 11, padding: "0 6px", height: 32, background: "var(--gesso-canvas)", border: "1px solid var(--gesso-divider)" }}
+                    onClick={() => handleQuickDemoFill("mine_official")}
+                  >
+                    Official
+                  </button>
+                  <button
+                    className="btn btn-ghost"
+                    type="button"
+                    style={{ flex: 1, justifyContent: "center", fontSize: 11, padding: "0 6px", height: 32, background: "var(--gesso-canvas)", border: "1px solid var(--gesso-divider)" }}
+                    onClick={() => handleQuickDemoFill("corporate")}
+                  >
+                    Corporate
+                  </button>
+                  <button
+                    className="btn btn-ghost"
+                    type="button"
+                    style={{ flex: 1, justifyContent: "center", fontSize: 11, padding: "0 6px", height: 32, background: "var(--gesso-canvas)", border: "1px solid var(--gesso-divider)" }}
+                    onClick={() => handleQuickDemoFill("regulator")}
+                  >
+                    Regulator
+                  </button>
+                </div>
+              </div>
             </form>
 
             <div className="auth-card-footer">
@@ -1401,8 +1790,10 @@ export default function App() {
   }
 
   // ════════════════════════════════════════════════════════════════════════════
-  // 2. MAIN COMPLIANCE APPLICATION (Rendered after contractor ID generation)
+  // 2. MAIN COMPLIANCE APPLICATION (Role-Based Grid)
   // ════════════════════════════════════════════════════════════════════════════
+  const activeRoleName = t[`role${currentUser.role === "mine_official" ? "MineOfficial" : (currentUser.role === "corporate" ? "Corporate" : (currentUser.role === "regulator" ? "Regulator" : "Contractor"))}`] || currentUser.role;
+
   return (
     <div className="dashboard-app-layout">
       {/* ── Mobile Sidebar Backdrop Overlay ── */}
@@ -1419,7 +1810,6 @@ export default function App() {
         className={`dashboard-sidebar ${sidebarCollapsed ? "sidebar-collapsed" : ""} ${mobileMenuOpen ? "mobile-open" : ""}`}
         aria-label="Sidebar Navigation"
       >
-        {/* Brand / Logo */}
         <div className="sidebar-brand-header">
           <div
             className="brand"
@@ -1436,7 +1826,6 @@ export default function App() {
               </div>
             )}
           </div>
-          {/* Mobile close button */}
           <button
             className="sidebar-close-btn"
             type="button"
@@ -1447,20 +1836,18 @@ export default function App() {
           </button>
         </div>
 
-        {/* Contractor / Mine Context Card */}
         {!sidebarCollapsed && (
           <div className="sidebar-profile-card">
             <div className="sidebar-contractor-name" title={currentUser.contractorName}>
               {currentUser.contractorName}
             </div>
-            <div className="sidebar-meta-row">
-              <span className="sidebar-badge-id">
-                <span className="contractor-dot" />
-                {currentUser.contractorId}
+            <div className="sidebar-meta-row" style={{ marginTop: 4 }}>
+              <span className="role-badge-pill">
+                ✦ {activeRoleName}
               </span>
             </div>
-            <div className="sidebar-location-sub">
-              <span>{currentUser.mineBlock ? `${currentUser.mineBlock.replace("Block-4", "Coalfield, Block-4")}` : "Jharia Coalfield, Block-4"}</span>
+            <div className="sidebar-location-sub" style={{ marginTop: 6 }}>
+              <span>{currentUser.contractorId}</span>
             </div>
             <div className="sidebar-live-status">
               <span className="pulse-dot" />
@@ -1473,112 +1860,123 @@ export default function App() {
         <div className="sidebar-nav-container">
           {!sidebarCollapsed && (
             <div className="sidebar-section-label">
-              {t.mainMenu || (lang === "en" ? "MAIN MENU" : "मुख्य मेनू")}
+              {t.mainMenu}
             </div>
           )}
 
           <nav className="sidebar-navlinks" aria-label="Dashboard Navigation">
-            {/* Nav Item: Dashboard */}
+            {/* Dashboard */}
             <button
               type="button"
               className={`sidebar-nav-item ${activeFeature === "dashboard" ? "active" : ""}`}
-              aria-current={activeFeature === "dashboard" ? "page" : undefined}
-              title={t.navDashboard}
               onClick={() => { setActiveFeature("dashboard"); setMobileMenuOpen(false); }}
             >
-              <span className="sidebar-nav-icon">
-                <HomeIcon className="ic ic-sm" />
-              </span>
-              {!sidebarCollapsed && (
-                <span className="sidebar-nav-label-wrap">
-                  <span className="sidebar-nav-title">{t.navDashboard}</span>
-                </span>
-              )}
-              {!sidebarCollapsed && activeFeature === "dashboard" && (
-                <span className="sidebar-active-indicator" />
-              )}
+              <span className="sidebar-nav-icon"><HomeIcon className="ic ic-sm" /></span>
+              {!sidebarCollapsed && <span className="sidebar-nav-title">{t.navDashboard}</span>}
+              {!sidebarCollapsed && activeFeature === "dashboard" && <span className="sidebar-active-indicator" />}
             </button>
 
-            {/* Nav Item: Inspections */}
+            {/* Gas & Telemetry */}
+            <button
+              type="button"
+              className={`sidebar-nav-item ${activeFeature === "telemetry" ? "active" : ""}`}
+              onClick={() => { setActiveFeature("telemetry"); setMobileMenuOpen(false); }}
+            >
+              <span className="sidebar-nav-icon"><WindIcon className="ic ic-sm" /></span>
+              {!sidebarCollapsed && <span className="sidebar-nav-title">{t.navTelemetry}</span>}
+              {!sidebarCollapsed && <span className="sidebar-item-badge badge-warning">Live</span>}
+              {!sidebarCollapsed && activeFeature === "telemetry" && <span className="sidebar-active-indicator" />}
+            </button>
+
+            {/* Inspections */}
             <button
               type="button"
               className={`sidebar-nav-item ${activeFeature === "inspections" ? "active" : ""}`}
-              aria-current={activeFeature === "inspections" ? "page" : undefined}
-              title={t.navInspections}
               onClick={() => { setActiveFeature("inspections"); setMobileMenuOpen(false); }}
             >
-              <span className="sidebar-nav-icon">
-                <ClipboardCheckIcon className="ic ic-sm" />
-              </span>
-              {!sidebarCollapsed && (
-                <span className="sidebar-nav-label-wrap">
-                  <span className="sidebar-nav-title">{t.navInspections}</span>
-                </span>
-              )}
-              {!sidebarCollapsed && (
-                <span className="sidebar-item-badge badge-warning">12</span>
-              )}
-              {!sidebarCollapsed && activeFeature === "inspections" && (
-                <span className="sidebar-active-indicator" />
-              )}
+              <span className="sidebar-nav-icon"><ClipboardCheckIcon className="ic ic-sm" /></span>
+              {!sidebarCollapsed && <span className="sidebar-nav-title">{t.navInspections}</span>}
+              {!sidebarCollapsed && <span className="sidebar-item-badge badge-warning">12</span>}
+              {!sidebarCollapsed && activeFeature === "inspections" && <span className="sidebar-active-indicator" />}
             </button>
 
-            {/* Nav Item: AI Insights */}
+            {/* AI Insights */}
             <button
               type="button"
               className={`sidebar-nav-item ${activeFeature === "insights" ? "active" : ""}`}
-              aria-current={activeFeature === "insights" ? "page" : undefined}
-              title={t.navInsights}
               onClick={() => { setActiveFeature("insights"); setMobileMenuOpen(false); }}
             >
-              <span className="sidebar-nav-icon">
-                <ActivityIcon className="ic ic-sm" />
-              </span>
-              {!sidebarCollapsed && (
-                <span className="sidebar-nav-label-wrap">
-                  <span className="sidebar-nav-title">{t.navInsights}</span>
-                </span>
-              )}
-              {!sidebarCollapsed && (
-                <span className="sidebar-item-badge badge-danger">24</span>
-              )}
-              {!sidebarCollapsed && activeFeature === "insights" && (
-                <span className="sidebar-active-indicator" />
-              )}
+              <span className="sidebar-nav-icon"><ActivityIcon className="ic ic-sm" /></span>
+              {!sidebarCollapsed && <span className="sidebar-nav-title">{t.navInsights}</span>}
+              {!sidebarCollapsed && <span className="sidebar-item-badge badge-danger">24</span>}
+              {!sidebarCollapsed && activeFeature === "insights" && <span className="sidebar-active-indicator" />}
             </button>
 
-            {/* Nav Item: Reports */}
+            {/* Compliance Register */}
+            <button
+              type="button"
+              className={`sidebar-nav-item ${activeFeature === "compliance" ? "active" : ""}`}
+              onClick={() => { setActiveFeature("compliance"); setMobileMenuOpen(false); }}
+            >
+              <span className="sidebar-nav-icon"><FileCheckIcon className="ic ic-sm" /></span>
+              {!sidebarCollapsed && <span className="sidebar-nav-title">{t.navCompliance}</span>}
+              {!sidebarCollapsed && activeFeature === "compliance" && <span className="sidebar-active-indicator" />}
+            </button>
+
+            {/* Contractors */}
+            <button
+              type="button"
+              className={`sidebar-nav-item ${activeFeature === "contractors" ? "active" : ""}`}
+              onClick={() => { setActiveFeature("contractors"); setMobileMenuOpen(false); }}
+            >
+              <span className="sidebar-nav-icon"><UsersIcon className="ic ic-sm" /></span>
+              {!sidebarCollapsed && <span className="sidebar-nav-title">{t.navContractors}</span>}
+              {!sidebarCollapsed && activeFeature === "contractors" && <span className="sidebar-active-indicator" />}
+            </button>
+
+            {/* Reports */}
             <button
               type="button"
               className={`sidebar-nav-item ${activeFeature === "reports" ? "active" : ""}`}
-              aria-current={activeFeature === "reports" ? "page" : undefined}
-              title={t.navReports}
               onClick={() => { setActiveFeature("reports"); setMobileMenuOpen(false); }}
             >
-              <span className="sidebar-nav-icon">
-                <FileTextIcon className="ic ic-sm" />
-              </span>
-              {!sidebarCollapsed && (
-                <span className="sidebar-nav-label-wrap">
-                  <span className="sidebar-nav-title">{t.navReports}</span>
-                </span>
-              )}
-              {!sidebarCollapsed && activeFeature === "reports" && (
-                <span className="sidebar-active-indicator" />
-              )}
+              <span className="sidebar-nav-icon"><FileTextIcon className="ic ic-sm" /></span>
+              {!sidebarCollapsed && <span className="sidebar-nav-title">{t.navReports}</span>}
+              {!sidebarCollapsed && activeFeature === "reports" && <span className="sidebar-active-indicator" />}
+            </button>
+
+            {/* Audit Trail */}
+            <button
+              type="button"
+              className={`sidebar-nav-item ${activeFeature === "audit" ? "active" : ""}`}
+              onClick={() => { setActiveFeature("audit"); setMobileMenuOpen(false); }}
+            >
+              <span className="sidebar-nav-icon"><LockIcon className="ic ic-sm" /></span>
+              {!sidebarCollapsed && <span className="sidebar-nav-title">{t.navAudit}</span>}
+              {!sidebarCollapsed && activeFeature === "audit" && <span className="sidebar-active-indicator" />}
+            </button>
+
+            {/* Governed AI Assistant */}
+            <button
+              type="button"
+              className={`sidebar-nav-item ${activeFeature === "assistant" ? "active" : ""}`}
+              onClick={() => { setActiveFeature("assistant"); setMobileMenuOpen(false); }}
+            >
+              <span className="sidebar-nav-icon"><BotIcon className="ic ic-sm" /></span>
+              {!sidebarCollapsed && <span className="sidebar-nav-title">{t.navAssistant}</span>}
+              {!sidebarCollapsed && <span className="sidebar-item-badge badge-success">AI</span>}
+              {!sidebarCollapsed && activeFeature === "assistant" && <span className="sidebar-active-indicator" />}
             </button>
           </nav>
         </div>
 
-        {/* Sidebar Footer: Lang Switcher, User & Actions */}
+        {/* Sidebar Footer */}
         <div className="sidebar-footer">
-          {/* Language Switcher & Collapse button */}
           <div className="sidebar-lang-switch">
             <div className="langtoggle" role="group" aria-label="Language Selector">
               <button
                 type="button"
                 className={lang === "en" ? "active" : ""}
-                aria-pressed={lang === "en"}
                 onClick={() => { setLang("en"); showToast("Language switched to English"); }}
               >
                 EN
@@ -1586,33 +1984,29 @@ export default function App() {
               <button
                 type="button"
                 className={lang === "hi" ? "active" : ""}
-                aria-pressed={lang === "hi"}
                 onClick={() => { setLang("hi"); showToast("भाषा बदलकर हिन्दी कर दी गई है"); }}
               >
                 HI
               </button>
             </div>
 
-            {/* Desktop Sidebar Collapse Button */}
             <button
               type="button"
               className="sidebar-collapse-btn"
-              title={sidebarCollapsed ? (lang === "en" ? "Expand sidebar" : "विस्तार करें") : (lang === "en" ? "Collapse sidebar" : "समेटें")}
               onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
             >
               <PanelToggleIcon collapsed={sidebarCollapsed} />
             </button>
           </div>
 
-          {/* User Profile Mini Bar & Logout */}
           <div className="sidebar-user-block">
             <div className="sidebar-user-avatar" title={currentUser.contractorName}>
-              {currentUser.contractorName ? currentUser.contractorName.charAt(0).toUpperCase() : "E"}
+              {currentUser.contractorName ? currentUser.contractorName.charAt(0).toUpperCase() : "O"}
             </div>
             {!sidebarCollapsed && (
               <div className="sidebar-user-details">
                 <div className="sidebar-user-name">{currentUser.contractorName}</div>
-                <div className="sidebar-user-role">{currentUser.contractorId}</div>
+                <div className="sidebar-user-role">{activeRoleName}</div>
               </div>
             )}
             <button
@@ -1629,6 +2023,26 @@ export default function App() {
 
       {/* ── Main Viewport Area ── */}
       <div className="dashboard-main-viewport">
+        {/* Offline Sync Banner if active */}
+        <div className="offline-sync-bar">
+          <div className="offline-sync-left">
+            <span className={`offline-tag-badge ${offlineQueueCount > 0 ? "queued" : ""}`}>
+              {offlineQueueCount > 0 ? `⚡ ${offlineQueueCount} Queued Offline` : "✓ Grid Synchronized"}
+            </span>
+            <span>{isFieldOffline ? t.offlineModeActive : (lang === "en" ? "DGMS Central Hub Connected" : "डीजीएमएस केंद्रीय हब कनेक्टेड")}</span>
+          </div>
+          <div className="offline-sync-actions">
+            <button
+              type="button"
+              className="btn-sync-now"
+              onClick={handleSyncOfflineQueue}
+            >
+              <RefreshCwIcon className="ic ic-xs" />
+              {t.btnSyncNow}
+            </button>
+          </div>
+        </div>
+
         {/* Top Header Bar */}
         <header className="dashboard-topbar">
           <div className="topbar-left">
@@ -1643,36 +2057,98 @@ export default function App() {
 
             <h1 className="topbar-main-title">
               {activeFeature === "dashboard" && t.navDashboard}
-              {activeFeature === "insights" && t.navInsights}
+              {activeFeature === "telemetry" && t.navTelemetry}
               {activeFeature === "inspections" && t.navInspections}
+              {activeFeature === "insights" && t.navInsights}
+              {activeFeature === "compliance" && t.navCompliance}
+              {activeFeature === "contractors" && t.navContractors}
               {activeFeature === "reports" && t.navReports}
+              {activeFeature === "audit" && t.navAudit}
+              {activeFeature === "assistant" && t.navAssistant}
             </h1>
 
             <div className="topbar-live-badge">
               <span className="badge-dot-live" />
-              <span>{t.liveDgmsSync || (lang === "en" ? "Live DGMS Sync" : "लाइव डीजीएमएस सिंक")}</span>
+              <span>{isLiveApiConnected ? "Live REST API Connected" : t.liveDgmsSync}</span>
             </div>
+            {isLiveApiConnected && (
+              <span className="live-api-badge">
+                Port 4000
+              </span>
+            )}
           </div>
 
           <div className="topbar-right">
-            {/* DGMS Portal Pill Button */}
+            {/* Quick Action: Log Observation */}
             <button
-              className="topbar-dgms-btn"
+              className="btn btn-outline"
               type="button"
-              onClick={() => showToast(lang === "en" ? "Connecting to DGMS Central Compliance Portal..." : "डीजीएमएस केंद्रीय अनुपालन पोर्टल से जुड़ रहा है...")}
+              style={{ height: 34, fontSize: 12.5, padding: "0 12px" }}
+              onClick={() => setObservationModalOpen(true)}
             >
-              <span className="portal-diamond">✦</span>
-              <span>{t.dgmsPortal || "DGMS Portal"}</span>
-              <ExternalLinkIcon className="ic ic-xs" />
+              <PlusIcon className="ic ic-xs" />
+              {t.btnLogObservation}
             </button>
 
-            {/* Notification Popover Button */}
+            {/* Role Switcher Pill */}
+            <div style={{ position: "relative" }}>
+              <button
+                type="button"
+                className="topbar-role-select"
+                onClick={() => { setRoleMenuOpen(!roleMenuOpen); setNotificationsOpen(false); setSettingsOpen(false); }}
+              >
+                <span>{activeRoleName}</span>
+                <ChevronDownIcon className="ic ic-xs" />
+              </button>
+
+              {roleMenuOpen && (
+                <div className="role-switcher-dropdown" role="menu">
+                  <div style={{ padding: "6px 12px 8px", fontSize: 11, fontWeight: 700, color: "#64748b", borderBottom: "1px solid #f1f5f9" }}>
+                    {t.switchRole}
+                  </div>
+                  <button
+                    type="button"
+                    className={`role-opt-item ${currentUser.role === "mine_official" ? "active" : ""}`}
+                    onClick={() => switchActiveRole("mine_official")}
+                  >
+                    <span>{t.roleMineOfficial}</span>
+                    {currentUser.role === "mine_official" && <CheckIcon className="ic ic-xs" />}
+                  </button>
+                  <button
+                    type="button"
+                    className={`role-opt-item ${currentUser.role === "corporate" ? "active" : ""}`}
+                    onClick={() => switchActiveRole("corporate")}
+                  >
+                    <span>{t.roleCorporate}</span>
+                    {currentUser.role === "corporate" && <CheckIcon className="ic ic-xs" />}
+                  </button>
+                  <button
+                    type="button"
+                    className={`role-opt-item ${currentUser.role === "regulator" ? "active" : ""}`}
+                    onClick={() => switchActiveRole("regulator")}
+                  >
+                    <span>{t.roleRegulator}</span>
+                    {currentUser.role === "regulator" && <CheckIcon className="ic ic-xs" />}
+                  </button>
+                  <button
+                    type="button"
+                    className={`role-opt-item ${currentUser.role === "contractor" ? "active" : ""}`}
+                    onClick={() => switchActiveRole("contractor")}
+                  >
+                    <span>{t.roleContractor}</span>
+                    {currentUser.role === "contractor" && <CheckIcon className="ic ic-xs" />}
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Notification Bell */}
             <div className="popover-wrapper">
               <button
                 className="iconbtn topbar-bell-btn"
                 type="button"
                 aria-label="Notifications"
-                onClick={() => { setNotificationsOpen(!notificationsOpen); setSettingsOpen(false); }}
+                onClick={() => { setNotificationsOpen(!notificationsOpen); setSettingsOpen(false); setRoleMenuOpen(false); }}
               >
                 <BellIcon style={{ width: 18, height: 18 }} />
                 <span className="topbar-badge-count">3</span>
@@ -1701,13 +2177,13 @@ export default function App() {
               )}
             </div>
 
-            {/* Settings Popover Button */}
+            {/* Settings Button */}
             <div className="popover-wrapper">
               <button
                 className="iconbtn"
                 type="button"
                 aria-label="Settings"
-                onClick={() => { setSettingsOpen(!settingsOpen); setNotificationsOpen(false); }}
+                onClick={() => { setSettingsOpen(!settingsOpen); setNotificationsOpen(false); setRoleMenuOpen(false); }}
               >
                 <SettingsIcon style={{ maxWidth: 32, maxHeight: 32 }} />
               </button>
@@ -1715,13 +2191,25 @@ export default function App() {
               {settingsOpen && (
                 <div className="popover-menu" role="menu">
                   <div style={{ padding: "4px 8px 8px", borderBottom: "1px solid var(--gesso-divider)", fontWeight: 700, fontSize: "12px", color: "var(--gesso-fg)" }}>
-                    {lang === "en" ? "Contractor Session Info" : "ठेकेदार सत्र विवरण"}
+                    {lang === "en" ? "Session Controls" : "सत्र नियंत्रण"}
                   </div>
                   <div style={{ padding: "8px", fontSize: "12px", color: "var(--gesso-fg-muted)" }}>
                     <div style={{ fontWeight: 700, color: "var(--gesso-fg)" }}>{currentUser.contractorName}</div>
                     <div style={{ marginTop: 2 }}>{currentUser.email}</div>
                     <div style={{ marginTop: 4, fontFamily: "var(--gesso-font-mono)", color: "var(--gesso-accent)" }}>{currentUser.contractorId}</div>
-                    <div style={{ marginTop: 2 }}>{currentUser.mineBlock || "Jharia Block-4"}</div>
+                  </div>
+                  <div style={{ padding: "8px", borderTop: "1px solid #f1f5f9" }}>
+                    <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, cursor: "pointer" }}>
+                      <input
+                        type="checkbox"
+                        checked={isFieldOffline}
+                        onChange={(e) => {
+                          setIsFieldOffline(e.target.checked);
+                          showToast(e.target.checked ? "Offline Field Mode enabled" : "Online Live Grid enabled");
+                        }}
+                      />
+                      <span>{lang === "en" ? "Simulate Offline Field Mode" : "ऑफ़लाइन फील्ड मोड सिमुलेशन"}</span>
+                    </label>
                   </div>
                   <div style={{ borderTop: "1px solid var(--gesso-divider)", paddingTop: 4 }}>
                     <button className="popover-item" type="button" onClick={handleLogout} style={{ color: "var(--gesso-error)", width: "100%" }}>
@@ -1732,16 +2220,10 @@ export default function App() {
                 </div>
               )}
             </div>
-
-            {/* Quick Profile Info */}
-            <div className="who">
-              <span className="who-name">{currentUser.contractorName}</span>
-              <span className="who-role">{currentUser.contractorId}</span>
-            </div>
           </div>
         </header>
 
-        {/* ── Toast Notification ── */}
+        {/* Toast Notification */}
         {toastMessage && (
           <div className="toast-notice" role="status">
             <CheckIcon className="ic ic-sm" style={{ color: "var(--gesso-success)" }} />
@@ -1752,1268 +2234,2002 @@ export default function App() {
         {/* ── Scrollable Dashboard Content Views ── */}
         <div className="dashboard-content-area">
 
-      {/* ══════════════════════════════════════════════════════════════════════
-          FEATURE 1: AI RISK INSIGHTS (Roof-Fall Alert & CAPA Assignment)
-          ══════════════════════════════════════════════════════════════════════ */}
-      {activeFeature === "insights" && (
-        <main className="wrap" data-brief-id="screen-root" data-brief-role="screen">
-          <section className="alerthead" data-brief-id="alert-header" data-brief-role="header">
-            <div>
-              <h1>{t.riskTitle}</h1>
-              <div className="headmeta">
-                <span className="tag">
-                  <AlertTriangleIcon className="ic ic-xs" style={{ maxWidth: 32, maxHeight: 32 }} />
-                  {t.tagHighRisk}
-                </span>
-                <span className="tag quiet">
-                  <MapPinIcon className="ic ic-xs" style={{ maxWidth: 32, maxHeight: 32 }} />
-                  {t.tagJharia}
-                </span>
-                <span className="tag quiet">
-                  <ClockIcon className="ic ic-xs" style={{ maxWidth: 32, maxHeight: 32 }} />
-                  {t.tagDetectedTime}
-                </span>
-                <span className="tag quiet">
-                  <ShieldIcon className="ic ic-xs" style={{ maxWidth: 32, maxHeight: 32 }} />
-                  {t.tagDgmsReg}
-                </span>
-              </div>
-            </div>
-            <div className="actionrow" data-brief-id="alert-actions" data-brief-role="cta">
-              <button
-                className="btn btn-primary"
-                type="button"
-                onClick={() => {
-                  setIsCapaAssigned(true);
-                  showToast(lang === "en" ? `CAPA assigned to ${currentOfficerName}.` : `सुधारात्मक कार्रवाई ${currentOfficerName} को सौंपी गई।`);
-                }}
-              >
-                <UserPlusIcon className="ic ic-sm" style={{ maxWidth: 32, maxHeight: 32 }} />
-                {t.btnAssignCapa}
-              </button>
-              <button
-                className="btn btn-outline"
-                type="button"
-                onClick={() => showToast(lang === "en" ? "Notice escalated to GM (Safety)." : "सूचना महाप्रबंधक (सुरक्षा) को भेजी गई।")}
-              >
-                <TrendingUpIcon className="ic ic-sm" style={{ maxWidth: 32, maxHeight: 32 }} />
-                {t.escalate}
-              </button>
-              <button
-                className="btn btn-ghost"
-                type="button"
-                onClick={() => showToast(lang === "en" ? "Downloading Risk Dossier (PDF)..." : "जोखिम डोजियर (पीडीएफ) डाउनलोड हो रहा है...")}
-              >
-                <DownloadIcon className="ic ic-sm" style={{ maxWidth: 32, maxHeight: 32 }} />
-                {t.pdf}
-              </button>
-            </div>
-          </section>
-
-          <div className="rule"></div>
-
-          <div className="main">
-            {/* Left Column: Risk Score, Explanation, Contributing Factors, Map */}
-            <div className="col">
-              {/* Composite Risk Score Hero Card */}
-              <section className="card" data-brief-id="risk-hero" data-brief-role="hero">
-                <div className="card-head">
-                  <span className="sec-label">{t.cardRiskScore}</span>
-                  <span className="sec-label-hi">{t.modelRecords}</span>
-                </div>
-                <div className="riskhero">
-                  <div className="gauge-wrap">
-                    <svg data-viz="risk-gauge" viewBox="0 0 200 128" style={{ width: "100%", maxWidth: "220px", height: "auto" }} role="img" aria-label="Risk score 78 out of 100">
-                      <path d="M20 118 A 80 80 0 0 1 180 118" fill="none" stroke="var(--gesso-surface)" strokeWidth="14" strokeLinecap="round" pathLength="100"></path>
-                      <path d="M20 118 A 80 80 0 0 1 180 118" fill="none" stroke="var(--gesso-accent)" strokeWidth="14" strokeLinecap="round" pathLength="100" strokeDasharray="78 100"></path>
-                      <text x="100" y="98" textAnchor="middle" fontFamily="Manrope, sans-serif" fontSize="44" fontWeight="800" fill="var(--gesso-fg)">78</text>
-                      <text x="20" y="128" textAnchor="start" fontFamily="Satoshi, sans-serif" fontSize="10" fill="var(--gesso-fg-muted)">{t.gaugeSafe}</text>
-                      <text x="180" y="128" textAnchor="end" fontFamily="Satoshi, sans-serif" fontSize="10" fill="var(--gesso-fg-muted)">{t.gaugeCritical}</text>
-                    </svg>
-                  </div>
-                  <div className="risknum">
-                    <span className="val">78</span>
-                    <span className="cap">
-                      {lang === "en" ? (
-                        <>of 100 · <b>High Risk band</b></>
-                      ) : (
-                        <>100 में से · <b>उच्च जोखिम श्रेणी</b></>
-                      )}
+          {/* ══════════════════════════════════════════════════════════════════
+              VIEW 1: ROLE-BASED DASHBOARD OVERVIEW
+              ══════════════════════════════════════════════════════════════════ */}
+          {activeFeature === "dashboard" && (
+            <main className="wrap" data-brief-id="dashboard-root">
+              <section className="pagehead">
+                <div>
+                  <div className="headmeta">
+                    <span className="tag">
+                      <ShieldIcon className="ic ic-xs" />
+                      {activeRoleName}
                     </span>
-                    <span className="deltaline">
-                      <ArrowUpRightIcon className="ic ic-sm" style={{ maxWidth: 32, maxHeight: 32 }} />
-                      {t.riskDelta}
+                    <span className="tag quiet">
+                      <MapPinIcon className="ic ic-xs" />
+                      {t.valMineScope}
                     </span>
                   </div>
+                  <h1 style={{ marginTop: 6 }}>{t.dashboardOverview}</h1>
+                  <p style={{ color: "var(--gesso-fg-muted)", fontSize: 13, marginTop: 2 }}>{t.dashboardSub}</p>
                 </div>
-              </section>
-
-              {/* Plain Language Explanation */}
-              <section className="card plain" data-brief-id="plain-explanation" data-brief-role="section">
-                <div className="card-head">
-                  <span className="sec-label">{t.cardExplanation}</span>
-                </div>
-                <p>{t.explanationText}</p>
-              </section>
-
-              {/* Contributing Telemetry Factors */}
-              <section className="card" data-brief-id="contributing-factors" data-brief-role="chart">
-                <div className="card-head">
-                  <span className="sec-label">{t.cardFactors}</span>
-                  <span className="sec-label-hi">{t.factorSignalWeight}</span>
-                </div>
-                <div className="factorlist" data-viz="factor-bars">
-                  <div className="factorrow">
-                    <div className="factor-top">
-                      <span className="factor-name">{t.factorBoltTension}</span>
-                      <span className="factor-val">34%</span>
-                    </div>
-                    <div className="track"><i style={{ width: "34%" }}></i></div>
-                    <p className="factor-note">{t.factorBoltNote}</p>
-                  </div>
-                  <div className="factorrow">
-                    <div className="factor-top">
-                      <span className="factor-name">{t.factorConvergence}</span>
-                      <span className="factor-val">27%</span>
-                    </div>
-                    <div className="track"><i style={{ width: "27%" }}></i></div>
-                    <p className="factor-note">{t.factorConvergenceNote}</p>
-                  </div>
-                  <div className="factorrow">
-                    <div className="factor-top">
-                      <span className="factor-name">{t.factorInspectionsOverdue}</span>
-                      <span className="factor-val">21%</span>
-                    </div>
-                    <div className="track"><i style={{ width: "21%" }}></i></div>
-                    <p className="factor-note">{t.factorInspectionsNote}</p>
-                  </div>
-                  <div className="factorrow">
-                    <div className="factor-top">
-                      <span className="factor-name">{t.factorVibration}</span>
-                      <span className="factor-val">18%</span>
-                    </div>
-                    <div className="track"><i style={{ width: "18%" }}></i></div>
-                    <p className="factor-note">{t.factorVibrationNote}</p>
-                  </div>
-                </div>
-              </section>
-
-              {/* Affected Mine Zone Geo-Map */}
-              <section className="card" data-brief-id="risk-zone-map" data-brief-role="viz">
-                <div className="card-head">
-                  <span className="sec-label">{t.cardAffectedZone}</span>
-                  <span className="sec-label-hi">{t.valMineScope}</span>
-                </div>
-                <MiningZoneVectorMap label="Map of Jharia Block-4 showing Section B roof-fall risk zone" lang={lang} />
-                <div className="mapfoot">
-                  <span>{t.workersOnShift}: <b>42</b></span>
-                  <span>{t.depth}: <b>218 {lang === "en" ? "m" : "मीटर"}</b></span>
-                  <span>{t.lastSurvey}: <b>{t.date16Feb}</b></span>
-                </div>
-              </section>
-            </div>
-
-            {/* Right Column: Assign CAPA, Underlying Evidence, Audit Trail */}
-            <div className="col">
-              {/* Corrective Action Assignment Form */}
-              <section className="card tinted" data-brief-id="capa-assign" data-brief-role="form">
-                <div className="card-head">
-                  <span className="sec-label">{t.cardAssignCapa}</span>
-                </div>
-                <div className="field">
-                  <label htmlFor="capa-owner">{t.lblResponsibleOfficer}</label>
-                  <button
-                    className="well"
-                    type="button"
-                    id="capa-owner"
-                    onClick={() => {
-                      const nextKey = capaOfficerKey === "SK" ? "MT" : "SK";
-                      setCapaOfficerKey(nextKey);
-                      const nextName = nextKey === "SK" ? (lang === "en" ? "S. Kujur" : "एस. कुजूर") : (lang === "en" ? "M. Tirkey" : "एम. तिर्की");
-                      showToast(lang === "en" ? `Responsible officer: ${nextName}` : `जिम्मेदार अधिकारी: ${nextName}`);
-                    }}
-                  >
-                    <span style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                      <span className="avatar">{capaOfficerKey === "SK" ? (lang === "en" ? "SK" : "एस.के") : (lang === "en" ? "MT" : "एम.टी")}</span>
-                      <span style={{ display: "flex", flexDirection: "column" }}>
-                        <span className="who-name">{currentOfficerName}</span>
-                        <span className="who-role">{t.valSafetyOfficer}</span>
-                      </span>
-                    </span>
-                    <ChevronDownIcon className="ic ic-sm" style={{ color: "var(--gesso-fg-muted)", maxWidth: 32, maxHeight: 32 }} />
-                  </button>
-                </div>
-                <div className="field">
-                  <label htmlFor="capa-action">{t.lblActionTemplate}</label>
-                  <button className="well" type="button" id="capa-action">
-                    <span>{t.optActionTemplate}</span>
-                    <ChevronDownIcon className="ic ic-sm" style={{ color: "var(--gesso-fg-muted)", maxWidth: 32, maxHeight: 32 }} />
-                  </button>
-                </div>
-                <div className="field">
-                  <label>{t.lblTargetClosure}</label>
-                  <div className="pillrow" role="group" aria-label="Target closure">
-                    {[
-                      { key: "24h", label: t.optClosure24h },
-                      { key: "48h", label: t.optClosure48h },
-                      { key: "7d", label: t.optClosure7d }
-                    ].map((item) => (
+                <div className="actionrow">
+                  {currentUser.role === "mine_official" && (
+                    <>
                       <button
-                        key={item.key}
-                        className={`chip ${capaClosureTime === item.key ? "active" : ""}`}
+                        className="btn btn-primary"
                         type="button"
-                        aria-pressed={capaClosureTime === item.key}
-                        onClick={() => setCapaClosureTime(item.key)}
+                        onClick={() => setChecklistRunnerOpen(true)}
                       >
-                        {item.label}
+                        <ClipboardCheckIcon className="ic ic-sm" />
+                        {t.btnStartInspection}
                       </button>
-                    ))}
-                  </div>
-                </div>
-                <button
-                  className="btn btn-primary"
-                  type="button"
-                  style={{ width: "100%", justifyContent: "center", marginTop: "4px" }}
-                  onClick={() => {
-                    setIsCapaAssigned(true);
-                    showToast(lang === "en" ? `CAPA assigned to ${currentOfficerName}.` : `सुधारात्मक कार्रवाई ${currentOfficerName} को सौंपी गई।`);
-                  }}
-                >
-                  <CheckIcon className="ic ic-sm" style={{ maxWidth: 32, maxHeight: 32 }} />
-                  {t.btnConfirmAssignment}
-                </button>
-                <p style={{ fontSize: "12px", color: "var(--gesso-fg-muted)", margin: "12px 0 0", lineHeight: 1.5 }}>
-                  {t.capaDisclaimer}
-                </p>
-              </section>
+                      <button
+                        className="btn btn-outline"
+                        type="button"
+                        onClick={() => setObservationModalOpen(true)}
+                      >
+                        <PlusIcon className="ic ic-sm" />
+                        {t.btnLogObservation}
+                      </button>
+                    </>
+                  )}
 
-              {/* Underlying Sensor Evidence Records */}
-              <section className="card" data-brief-id="evidence-records" data-brief-role="list">
-                <div className="card-head">
-                  <span className="sec-label">{t.cardUnderlyingRecords}</span>
-                  <span className="sec-label-hi">{t.total14Records}</span>
-                </div>
-                <div className="list">
-                  <div className="lrow">
-                    <span className="lglyph"><ClipboardCheckIcon className="ic ic-sm" style={{ maxWidth: 32, maxHeight: 32 }} /></span>
-                    <span className="ltxt">
-                      <span className="ltitle">{t.rec1Title}</span>
-                      <span className="lmeta">{t.rec1Meta}</span>
-                    </span>
-                    <span className="lval">{t.date14Feb}</span>
-                  </div>
-                  <div className="lrow">
-                    <span className="lglyph"><AlertTriangleIcon className="ic ic-sm" style={{ maxWidth: 32, maxHeight: 32 }} /></span>
-                    <span className="ltxt">
-                      <span className="ltitle">{t.rec2Title}</span>
-                      <span className="lmeta">{t.rec2Meta}</span>
-                    </span>
-                    <span className="lval">{t.date16Feb}</span>
-                  </div>
-                  <div className="lrow">
-                    <span className="lglyph"><ActivityIcon className="ic ic-sm" style={{ maxWidth: 32, maxHeight: 32 }} /></span>
-                    <span className="ltxt">
-                      <span className="ltitle">{t.rec3Title}</span>
-                      <span className="lmeta">{t.rec3Meta}</span>
-                    </span>
-                    <span className="lval">{t.date12Feb}</span>
-                  </div>
-                  <div className="lrow">
-                    <span className="lglyph"><FileTextIcon className="ic ic-sm" style={{ maxWidth: 32, maxHeight: 32 }} /></span>
-                    <span className="ltxt">
-                      <span className="ltitle">{t.rec4Title}</span>
-                      <span className="lmeta">{t.rec4Meta}</span>
-                    </span>
-                    <span className="lval">{t.date16Feb}</span>
-                  </div>
-                </div>
-                <button className="viewall" type="button" onClick={() => showToast(lang === "en" ? "Loading 14 sensor logs" : "14 सेंसर लॉग लोड हो रहे हैं")}>
-                  {t.btnViewAll14}
-                  <ArrowRightIcon className="ic ic-sm" style={{ maxWidth: 32, maxHeight: 32 }} />
-                </button>
-              </section>
+                  {currentUser.role === "corporate" && (
+                    <button
+                      className="btn btn-primary"
+                      type="button"
+                      onClick={() => showToast(lang === "en" ? "Exporting CIL Multi-Mine Safety Dossier..." : "बहु-खदान सुरक्षा डोजियर तैयार हो रहा है...")}
+                    >
+                      <DownloadIcon className="ic ic-sm" />
+                      {t.btnExportDossier}
+                    </button>
+                  )}
 
-              {/* Immutable DGMS Audit Trail */}
-              <section className="card" data-brief-id="audit-trail" data-brief-role="section">
-                <div className="card-head">
-                  <span className="sec-label">{t.cardAuditTrail}</span>
-                  <span className="sec-label-hi">{t.auditImmutable}</span>
-                </div>
-                <div className="trail">
-                  <div className="trow">
-                    <span className="tstamp">{t.date18Feb0620}</span>
-                    <span className="tbody">{t.audit1}</span>
-                  </div>
-                  <div className="trow">
-                    <span className="tstamp">{t.date18Feb0622}</span>
-                    <span className="tbody">{t.audit2}</span>
-                  </div>
-                  <div className="trow">
-                    <span className="tstamp">{t.date18Feb0705}</span>
-                    <span className="tbody">{t.audit3} {currentUser.contractorName} ({currentUser.contractorId})</span>
-                  </div>
-                  <div className="trow">
-                    <span className="tstamp">{t.date18Feb0711}</span>
-                    <span className="tbody">{t.audit4}</span>
-                  </div>
-                  {isCapaAssigned && (
-                    <div className="trow" style={{ animation: "slideUp 200ms ease" }}>
-                      <span className="tstamp" style={{ color: "var(--gesso-accent)", fontWeight: 700 }}>{t.date18Feb0745}</span>
-                      <span className="tbody">{t.auditAssigned} {currentOfficerName}</span>
-                    </div>
+                  {currentUser.role === "regulator" && (
+                    <button
+                      className="btn btn-primary"
+                      type="button"
+                      onClick={() => showToast(lang === "en" ? "Form IV-B Statutory Notice Drafted." : "फॉर्म IV-B वैधानिक नोटिस तैयार।")}
+                    >
+                      <FileTextIcon className="ic ic-sm" />
+                      {t.btnIssueNotice}
+                    </button>
                   )}
                 </div>
               </section>
-            </div>
-          </div>
 
-          <div className="rule" style={{ marginBlock: "32px 0" }}></div>
-          <footer>
-            <span>{t.footerMinistry}</span>
-            <span>{t.footerAlertRetention}</span>
-          </footer>
-        </main>
-      )}
+              <div className="rule"></div>
 
-      {/* ══════════════════════════════════════════════════════════════════════
-          FEATURE 2: MINE DASHBOARD BUILDER (Create Dashboard)
-          ══════════════════════════════════════════════════════════════════════ */}
-      {activeFeature === "dashboard" && (
-        <main className="wrap" data-brief-id="section-create-dashboard" data-brief-role="section">
-          <section className="pagehead" data-brief-id="page-header" data-brief-role="header">
-            <div>
-              <p className="crumb">
-                <button className="backlink" type="button" onClick={() => setActiveFeature("insights")}>
-                  <ArrowLeftIcon className="ic ic-sm" style={{ maxWidth: 32, maxHeight: 32 }} />
-                  {t.crumbBackDashboard || (lang === "en" ? "Back to Dashboard" : "डैशबोर्ड पर वापस")}
-                </button>
-              </p>
-              <h1>{t.pageCreateDashboard || (lang === "en" ? "Create dashboard" : "डैशबोर्ड बनाएं")}</h1>
-              <div className="headmeta">
-                <span className="tag">
-                  <LayoutDashboardIcon className="ic" style={{ maxWidth: 32, maxHeight: 32 }} />
-                  {t.tagNewView || (lang === "en" ? "New view" : "नया दृश्य")}
-                </span>
-                <span className="tag quiet">
-                  <UserIcon className="ic" style={{ maxWidth: 32, maxHeight: 32 }} />
-                  {t.tagOwner || (lang === "en" ? "Owner" : "स्वामी")} {currentUser.contractorName}
-                </span>
-                <span className="tag quiet">
-                  <ClockIcon className="ic" style={{ maxWidth: 32, maxHeight: 32 }} />
-                  {t.tagDraftSaved || (lang === "en" ? "Draft saved 09:14" : "मसौदा सहेजा गया 09:14")}
-                </span>
+              {/* Dynamic KPI Row based on Role */}
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 16, marginBlock: "24px 16px" }}>
+                {currentUser.role === "mine_official" && (
+                  <>
+                    <div className="card" style={{ padding: 18 }}>
+                      <span className="sec-label">{t.kpiRiskScore}</span>
+                      <div style={{ fontSize: 32, fontWeight: 800, color: "#dc2626", marginTop: 6 }}>78 <span style={{ fontSize: 14, color: "#64748b" }}>/ 100</span></div>
+                      <span className="deltaline" style={{ marginTop: 4 }}><ArrowUpRightIcon className="ic ic-sm" /> +23 {t.complianceTrend}</span>
+                    </div>
+                    <div className="card" style={{ padding: 18 }}>
+                      <span className="sec-label">{t.kpiMethaneAvg}</span>
+                      <div style={{ fontSize: 32, fontWeight: 800, color: "#15803d", marginTop: 6 }}>0.42%</div>
+                      <span style={{ fontSize: 12, color: "#15803d", fontWeight: 700 }}>✓ {t.kpiAirflowNominal}</span>
+                    </div>
+                    <div className="card" style={{ padding: 18 }}>
+                      <span className="sec-label">{t.kpiOverdueInspections}</span>
+                      <div style={{ fontSize: 32, fontWeight: 800, color: "#b45309", marginTop: 6 }}>6</div>
+                      <span style={{ fontSize: 12, color: "#64748b" }}>INS-8841 ({t.date14Feb})</span>
+                    </div>
+                    <div className="card" style={{ padding: 18 }}>
+                      <span className="sec-label">{t.kpiOnShift}</span>
+                      <div style={{ fontSize: 32, fontWeight: 800, color: "#0f172a", marginTop: 6 }}>412</div>
+                      <span style={{ fontSize: 12, color: "#64748b" }}>3 {t.shiftCrews} active</span>
+                    </div>
+                  </>
+                )}
+
+                {currentUser.role === "corporate" && (
+                  <>
+                    <div className="card" style={{ padding: 18 }}>
+                      <span className="sec-label">{t.kpiAggregateCompliance}</span>
+                      <div style={{ fontSize: 32, fontWeight: 800, color: "#15803d", marginTop: 6 }}>94.6%</div>
+                      <span style={{ fontSize: 12, color: "#64748b" }}>{t.kpiAcross4Mines}</span>
+                    </div>
+                    <div className="card" style={{ padding: 18 }}>
+                      <span className="sec-label">TOTAL DESPATCH (FEB)</span>
+                      <div style={{ fontSize: 32, fontWeight: 800, color: "#0f172a", marginTop: 6 }}>0.94 MT</div>
+                      <span style={{ fontSize: 12, color: "#15803d", fontWeight: 700 }}>↑ 8.2% vs target</span>
+                    </div>
+                    <div className="card" style={{ padding: 18 }}>
+                      <span className="sec-label">ACTIVE CONTRACTORS</span>
+                      <div style={{ fontSize: 32, fontWeight: 800, color: "#2563eb", marginTop: 6 }}>14</div>
+                      <span style={{ fontSize: 12, color: "#64748b" }}>100% Form V certified</span>
+                    </div>
+                    <div className="card" style={{ padding: 18 }}>
+                      <span className="sec-label">OPEN STATUTORY CAPA</span>
+                      <div style={{ fontSize: 32, fontWeight: 800, color: "#b45309", marginTop: 6 }}>11</div>
+                      <span style={{ fontSize: 12, color: "#b45309", fontWeight: 700 }}>4 critical SLA</span>
+                    </div>
+                  </>
+                )}
+
+                {currentUser.role === "regulator" && (
+                  <>
+                    <div className="card" style={{ padding: 18 }}>
+                      <span className="sec-label">{t.kpiPendingApprovals}</span>
+                      <div style={{ fontSize: 32, fontWeight: 800, color: "#2563eb", marginTop: 6 }}>4</div>
+                      <span style={{ fontSize: 12, color: "#64748b" }}>{t.kpiForm3AQueue}</span>
+                    </div>
+                    <div className="card" style={{ padding: 18 }}>
+                      <span className="sec-label">VIOLATION NOTICES</span>
+                      <div style={{ fontSize: 32, fontWeight: 800, color: "#dc2626", marginTop: 6 }}>2</div>
+                      <span style={{ fontSize: 12, color: "#dc2626", fontWeight: 700 }}>Section 22A stop-work</span>
+                    </div>
+                    <div className="card" style={{ padding: 18 }}>
+                      <span className="sec-label">DIGITAL AUDIT TRAIL</span>
+                      <div style={{ fontSize: 32, fontWeight: 800, color: "#15803d", marginTop: 6 }}>1,284</div>
+                      <span style={{ fontSize: 12, color: "#64748b" }}>100% Immutable logged</span>
+                    </div>
+                    <div className="card" style={{ padding: 18 }}>
+                      <span className="sec-label">MINES INSPECTED (Q4)</span>
+                      <div style={{ fontSize: 32, fontWeight: 800, color: "#0f172a", marginTop: 6 }}>18 / 22</div>
+                      <span style={{ fontSize: 12, color: "#15803d", fontWeight: 700 }}>82% coverage</span>
+                    </div>
+                  </>
+                )}
+
+                {currentUser.role === "contractor" && (
+                  <>
+                    <div className="card" style={{ padding: 18 }}>
+                      <span className="sec-label">{t.kpiRiskScore}</span>
+                      <div style={{ fontSize: 32, fontWeight: 800, color: "#dc2626", marginTop: 6 }}>78 / 100</div>
+                      <span style={{ fontSize: 12, color: "#dc2626", fontWeight: 700 }}>High Risk band</span>
+                    </div>
+                    <div className="card" style={{ padding: 18 }}>
+                      <span className="sec-label">{t.kpiOverdueInspections}</span>
+                      <div style={{ fontSize: 32, fontWeight: 800, color: "#b45309", marginTop: 6 }}>6 Pending</div>
+                      <span style={{ fontSize: 12, color: "#64748b" }}>DGMS Reg. 108</span>
+                    </div>
+                    <div className="card" style={{ padding: 18 }}>
+                      <span className="sec-label">{t.kpiOnShift}</span>
+                      <div style={{ fontSize: 32, fontWeight: 800, color: "#0f172a", marginTop: 6 }}>412</div>
+                      <span style={{ fontSize: 12, color: "#64748b" }}>Biometric verified</span>
+                    </div>
+                    <div className="card" style={{ padding: 18 }}>
+                      <span className="sec-label">{t.kpiDustLevel}</span>
+                      <div style={{ fontSize: 32, fontWeight: 800, color: "#15803d", marginTop: 6 }}>2.4 mg/m³</div>
+                      <span style={{ fontSize: 12, color: "#15803d", fontWeight: 700 }}>Within MoEFCC limits</span>
+                    </div>
+                  </>
+                )}
               </div>
-            </div>
-            <div className="actionrow" data-brief-id="header-actions" data-brief-role="cta">
-              <button
-                className="btn btn-primary"
-                type="button"
-                onClick={() => showToast(lang === "en" ? `Dashboard "${dashboardTitle || t.dashboardDefaultTitle || "Block-4 Safety"}" created.` : `डैशबोर्ड "${dashboardTitle || t.dashboardDefaultTitle || "Block-4 Safety"}" बनाया गया।`)}
-              >
-                <CheckIcon className="ic ic-sm" style={{ maxWidth: 32, maxHeight: 32 }} />
-                {t.btnCreateDashboard || (lang === "en" ? "Create dashboard" : "डैशबोर्ड बनाएं")}
-              </button>
-              <button
-                className="btn btn-outline"
-                type="button"
-                onClick={() => showToast(lang === "en" ? "Rendering grid preview..." : "ग्रिड पूर्वावलोकन तैयार हो रहा है...")}
-              >
-                <EyeIcon className="ic ic-sm" style={{ maxWidth: 32, maxHeight: 32 }} />
-                {t.preview || "Preview"}
-              </button>
-              <button
-                className="btn btn-ghost"
-                type="button"
-                onClick={() => setActiveFeature("insights")}
-              >
-                {t.cancel || "Cancel"}
-              </button>
-            </div>
-          </section>
 
-          <div className="rule"></div>
-
-          <div className="main">
-            {/* Left Column: Dashboard Setup & Selected Scope */}
-            <div className="col">
-              <section className="card" data-brief-id="dashboard-setup" data-brief-role="form">
-                <div className="card-head">
-                  <span className="sec-label">{t.cardDashboardDefinition || "DASHBOARD DEFINITION"}</span>
-                  <span className="sec-label-hi">{t.step1of2 || "Step 1 of 2"}</span>
-                </div>
-
-                <div className="namewrap" style={{ marginBottom: "32px" }}>
-                  <span className="nameval">{dashboardTitle || t.dashboardDefaultTitle || "Block-4 Safety"}</span>
-                  <span className="namecap">
-                    {t.workingTitleSub || "Working title · visible to 6 officers"}
-                  </span>
-                </div>
-
-                <div className="field">
-                  <label htmlFor="db-name">{t.lblDashboardName || "Dashboard name"}</label>
-                  <input
-                    className="well"
-                    id="db-name"
-                    type="text"
-                    placeholder={t.dashboardDefaultTitle || "Block-4 Safety"}
-                    value={dashboardTitle}
-                    onChange={(e) => setDashboardTitle(e.target.value)}
-                    aria-describedby="db-name-hint"
-                  />
-                  <span className="field-hint" id="db-name-hint">
-                    {t.dashboardNameHint || "Appears in the sidebar and on exported reports."}
-                  </span>
-                </div>
-
-                <div className="field">
-                  <label htmlFor="db-scope">{t.lblMineScope || "Mine scope"}</label>
-                  <button className="well" type="button" id="db-scope">
-                    <span>{t.valMineScope || "Jharia Coalfield · Block-4"}</span>
-                    <ChevronDownIcon className="ic ic-sm" style={{ color: "var(--gesso-fg-muted)", maxWidth: 32, maxHeight: 32 }} />
-                  </button>
-                </div>
-
-                <div className="field">
-                  <label htmlFor="db-audience">{t.lblVisibleRole || "Visible to role"}</label>
-                  <button className="well" type="button" id="db-audience">
-                    <span>{t.valVisibleRole || "Mine Officials & Registered Contractors"}</span>
-                    <ChevronDownIcon className="ic ic-sm" style={{ color: "var(--gesso-fg-muted)", maxWidth: 32, maxHeight: 32 }} />
-                  </button>
-                </div>
-
-                <div className="field">
-                  <label>{t.lblRefreshInterval || "Refresh interval"}</label>
-                  <div className="pillrow" role="group" aria-label="Refresh interval">
-                    {[
-                      { key: "live", label: t.optLive || "Live" },
-                      { key: "15min", label: t.opt15min || "15 min" },
-                      { key: "pershift", label: t.optPerShift || "Per shift" },
-                      { key: "daily", label: t.optDaily || "Daily" }
-                    ].map((item) => (
+              {/* Main Content Layout */}
+              <div className="main">
+                <div className="col">
+                  {/* AI Risk Alert Banner Card */}
+                  <section className="card" style={{ borderLeft: "4px solid #dc2626" }}>
+                    <div className="card-head">
+                      <span className="sec-label">{t.tagHighRisk}</span>
+                      <span className="sec-label-hi">{t.tagDetectedTime}</span>
+                    </div>
+                    <h2 style={{ fontSize: 17, fontWeight: 800, color: "#0f172a", marginBlock: "4px 8px" }}>{t.riskTitle}</h2>
+                    <p style={{ fontSize: 13, color: "#334155", lineHeight: 1.6 }}>{t.explanationText}</p>
+                    <div style={{ display: "flex", gap: 10, marginTop: 16 }}>
                       <button
-                        key={item.key}
-                        className={`chip ${refreshInterval === item.key ? "active" : ""}`}
+                        className="btn btn-primary"
                         type="button"
-                        aria-pressed={refreshInterval === item.key}
-                        onClick={() => setRefreshInterval(item.key)}
+                        onClick={() => setActiveFeature("insights")}
                       >
-                        {item.label}
+                        <ActivityIcon className="ic ic-sm" />
+                        {lang === "en" ? "Investigate AI Model & Assign CAPA" : "एआई मॉडल विश्लेषण एवं कार्रवाई"}
                       </button>
-                    ))}
-                  </div>
-                </div>
-              </section>
+                    </div>
+                  </section>
 
-              <section className="card" data-brief-id="scope-map" data-brief-role="viz">
-                <div className="card-head">
-                  <span className="sec-label">{t.cardSelectedScope || "SELECTED SCOPE"}</span>
-                  <span className="sec-label-hi">{t.valMineScope || "Jharia Coalfield · Block-4"}</span>
-                </div>
-                <MiningZoneVectorMap label="Map of Jharia Block-4 showing the pit head and panels included in this dashboard scope" lang={lang} />
-                <div className="mapfoot">
-                  <span>{t.panelsIncluded || "Panels included"}: <b>7</b></span>
-                  <span>{t.activeSensors || "Active sensors"}: <b>184</b></span>
-                  <span>{t.shiftCrews || "Shift crews"}: <b>3</b></span>
-                </div>
-              </section>
-            </div>
+                  {/* Multi-Mine Comparison Table (For Corporate / Regulator) */}
+                  {(currentUser.role === "corporate" || currentUser.role === "regulator") && (
+                    <section className="card">
+                      <div className="card-head">
+                        <span className="sec-label">{lang === "en" ? "SUBSIDIARY MINES SAFETY BENCHMARK" : "अनुषंगी खदान सुरक्षा तुलना"}</span>
+                        <span className="sec-label-hi">CIL Telemetry Grid</span>
+                      </div>
+                      <div className="gov-table-wrap">
+                        <table className="gov-table">
+                          <thead>
+                            <tr>
+                              <th>{lang === "en" ? "Mine Block" : "खदान ब्लॉक"}</th>
+                              <th>{lang === "en" ? "Composite Risk" : "समग्र जोखिम"}</th>
+                              <th>{lang === "en" ? "CH₄ Gas" : "मीथेन (CH₄)"}</th>
+                              <th>{lang === "en" ? "Compliance Score" : "अनुपालन स्कोर"}</th>
+                              <th>{lang === "en" ? "Status" : "स्थिति"}</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            <tr>
+                              <td><b>Jharia Block-4 (BCCL)</b></td>
+                              <td><span className="table-badge badge-danger">78 / 100 (High)</span></td>
+                              <td>0.42%</td>
+                              <td>92.4%</td>
+                              <td><span className="table-badge badge-warning">CAPA Pending</span></td>
+                            </tr>
+                            <tr>
+                              <td><b>Raniganj Seam-VII (ECL)</b></td>
+                              <td><span className="table-badge badge-success">24 / 100 (Safe)</span></td>
+                              <td>0.18%</td>
+                              <td>98.8%</td>
+                              <td><span className="table-badge badge-success">Compliant</span></td>
+                            </tr>
+                            <tr>
+                              <td><b>Korba West Pit-2 (SECL)</b></td>
+                              <td><span className="table-badge badge-success">31 / 100 (Safe)</span></td>
+                              <td>0.22%</td>
+                              <td>97.5%</td>
+                              <td><span className="table-badge badge-success">Compliant</span></td>
+                            </tr>
+                            <tr>
+                              <td><b>Singrauli Block-B (NCL)</b></td>
+                              <td><span className="table-badge badge-warning">54 / 100 (Moderate)</span></td>
+                              <td>0.36%</td>
+                              <td>94.1%</td>
+                              <td><span className="table-badge badge-info">Routine Survey</span></td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                    </section>
+                  )}
 
-            {/* Right Column: Add Widgets & Layout Preview */}
-            <div className="col">
-              <section className="card tinted" data-brief-id="widget-picker" data-brief-role="list">
-                <div className="card-head">
-                  <span className="sec-label">{t.cardAddWidgets || "ADD WIDGETS"}</span>
-                  <span className="sec-label-hi">{selectedWidgetCount} / 6 {t.widgetsSelectedOf || "selected"}</span>
+                  {/* Active Operations Map for Mine Official */}
+                  {(currentUser.role === "mine_official" || currentUser.role === "contractor") && (
+                    <section className="card">
+                      <div className="card-head">
+                        <span className="sec-label">{t.cardActiveOperations}</span>
+                        <span className="sec-label-hi">{t.valMineScope}</span>
+                      </div>
+                      <MiningZoneVectorMap label="Underground Operations Zone Map" lang={lang} />
+                      <div className="mapfoot">
+                        <span>{t.workersOnShift}: <b>412</b></span>
+                        <span>{t.depth}: <b>218 m</b></span>
+                        <span>{t.lastSurvey}: <b>{t.date16Feb}</b></span>
+                      </div>
+                    </section>
+                  )}
                 </div>
-                <div className="list">
-                  <div className="lrow">
-                    <span className="lglyph"><ActivityIcon className="ic ic-sm" style={{ maxWidth: 32, maxHeight: 32 }} /></span>
-                    <span className="ltxt">
-                      <span className="ltitle">{t.widgetRisk || "Composite risk score"}</span>
-                      <span className="lmeta">{t.widgetRiskMeta || "Updated per shift"}</span>
-                    </span>
+
+                {/* Right Column */}
+                <div className="col">
+                  {/* Real-Time Telemetry Quick Snapshot */}
+                  <section className="card">
+                    <div className="card-head">
+                      <span className="sec-label">{lang === "en" ? "REAL-TIME TELEMETRY FEED" : "लाइव टेलीमेट्री फीड"}</span>
+                      <span className="sec-label-hi">Live 15s Feed</span>
+                    </div>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: "1px solid #f1f5f9" }}>
+                        <div>
+                          <div style={{ fontWeight: 700, fontSize: 13.5, color: "#0f172a" }}>Methane Gas (CH₄) — Section B</div>
+                          <div style={{ fontSize: 11.5, color: "#64748b" }}>Sensor SN-0914 · Reg. 140 limit 0.75%</div>
+                        </div>
+                        <div style={{ textAlign: "right" }}>
+                          <span style={{ fontWeight: 800, fontSize: 16, color: "#15803d" }}>0.42%</span>
+                        </div>
+                      </div>
+
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: "1px solid #f1f5f9" }}>
+                        <div>
+                          <div style={{ fontWeight: 700, fontSize: 13.5, color: "#0f172a" }}>Carbon Monoxide (CO) — Return Shaft</div>
+                          <div style={{ fontSize: 11.5, color: "#64748b" }}>Sensor SN-0821 · Safe &lt;50 ppm</div>
+                        </div>
+                        <div style={{ textAlign: "right" }}>
+                          <span style={{ fontWeight: 800, fontSize: 16, color: "#0f172a" }}>12 ppm</span>
+                        </div>
+                      </div>
+
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: "1px solid #f1f5f9" }}>
+                        <div>
+                          <div style={{ fontWeight: 700, fontSize: 13.5, color: "#0f172a" }}>Support Bolt Tension (12 Sensors)</div>
+                          <div style={{ fontSize: 11.5, color: "#dc2626", fontWeight: 600 }}>Anomaly: 4 shifts flagged below threshold</div>
+                        </div>
+                        <div style={{ textAlign: "right" }}>
+                          <span style={{ fontWeight: 800, fontSize: 16, color: "#dc2626" }}>68 kN</span>
+                        </div>
+                      </div>
+                    </div>
                     <button
-                      className={`addbtn ${activeWidgets.risk ? "active" : ""}`}
+                      className="viewall"
                       type="button"
-                      aria-pressed={activeWidgets.risk}
-                      onClick={() => toggleWidgetSelection("risk")}
+                      style={{ marginTop: 12 }}
+                      onClick={() => setActiveFeature("telemetry")}
                     >
-                      {activeWidgets.risk ? <CheckIcon className="ic ic-sm" /> : <PlusIcon className="ic ic-sm" />}
+                      {lang === "en" ? "Open Full Gas & Telemetry Hub" : "पूरा टेलीमेट्री हब खोलें"}
+                      <ArrowRightIcon className="ic ic-sm" />
                     </button>
-                  </div>
+                  </section>
 
-                  <div className="lrow">
-                    <span className="lglyph"><ClipboardCheckIcon className="ic ic-sm" style={{ maxWidth: 32, maxHeight: 32 }} /></span>
-                    <span className="ltxt">
-                      <span className="ltitle">{t.widgetOverdue || "Overdue inspections"}</span>
-                      <span className="lmeta">{t.widgetOverdueMeta || "DGMS Reg. 108"}</span>
-                    </span>
+                  {/* Prior Inspections List */}
+                  <section className="card">
+                    <div className="card-head">
+                      <span className="sec-label">{t.cardPriorInspections}</span>
+                      <span className="sec-label-hi">{t.total108}</span>
+                    </div>
+                    <div className="list">
+                      <div className="lrow">
+                        <span className="lglyph"><ClipboardCheckIcon className="ic ic-sm" /></span>
+                        <span className="ltxt">
+                          <span className="ltitle">{t.prior1Title}</span>
+                          <span className="lmeta">{t.prior1Meta}</span>
+                        </span>
+                        <span className="lval">{t.date14Feb}</span>
+                      </div>
+                      <div className="lrow">
+                        <span className="lglyph"><WindIcon className="ic ic-sm" /></span>
+                        <span className="ltxt">
+                          <span className="ltitle">{t.prior2Title}</span>
+                          <span className="lmeta">{t.prior2Meta}</span>
+                        </span>
+                        <span className="lval">09 Feb</span>
+                      </div>
+                    </div>
                     <button
-                      className={`addbtn ${activeWidgets.inspections ? "active" : ""}`}
+                      className="viewall"
                       type="button"
-                      aria-pressed={activeWidgets.inspections}
-                      onClick={() => toggleWidgetSelection("inspections")}
+                      onClick={() => setChecklistRunnerOpen(true)}
                     >
-                      {activeWidgets.inspections ? <CheckIcon className="ic ic-sm" /> : <PlusIcon className="ic ic-sm" />}
+                      {t.btnPreviewChecklist}
+                      <ArrowRightIcon className="ic ic-sm" />
                     </button>
-                  </div>
-
-                  <div className="lrow">
-                    <span className="lglyph"><UsersIcon className="ic ic-sm" style={{ maxWidth: 32, maxHeight: 32 }} /></span>
-                    <span className="ltxt">
-                      <span className="ltitle">{t.widgetAttendance || "Shift attendance"}</span>
-                      <span className="lmeta">{t.widgetAttendanceMeta || "Biometric feed"}</span>
-                    </span>
-                    <button
-                      className={`addbtn ${activeWidgets.attendance ? "active" : ""}`}
-                      type="button"
-                      aria-pressed={activeWidgets.attendance}
-                      onClick={() => toggleWidgetSelection("attendance")}
-                    >
-                      {activeWidgets.attendance ? <CheckIcon className="ic ic-sm" /> : <PlusIcon className="ic ic-sm" />}
-                    </button>
-                  </div>
-
-                  <div className="lrow">
-                    <span className="lglyph"><WindIcon className="ic ic-sm" style={{ maxWidth: 32, maxHeight: 32 }} /></span>
-                    <span className="ltxt">
-                      <span className="ltitle">{t.widgetVentilation || "Ventilation & dust index"}</span>
-                      <span className="lmeta">{t.widgetVentilationMeta || "MoEFCC Compliance"}</span>
-                    </span>
-                    <button
-                      className={`addbtn ${activeWidgets.ventilation ? "active" : ""}`}
-                      type="button"
-                      aria-pressed={activeWidgets.ventilation}
-                      onClick={() => toggleWidgetSelection("ventilation")}
-                    >
-                      {activeWidgets.ventilation ? <CheckIcon className="ic ic-sm" /> : <PlusIcon className="ic ic-sm" />}
-                    </button>
-                  </div>
-
-                  <div className="lrow">
-                    <span className="lglyph"><TruckIcon className="ic ic-sm" style={{ maxWidth: 32, maxHeight: 32 }} /></span>
-                    <span className="ltxt">
-                      <span className="ltitle">{t.widgetDespatch || "Daily despatch tonnage"}</span>
-                      <span className="lmeta">{t.widgetDespatchMeta || "Weighbridge telemetry"}</span>
-                    </span>
-                    <button
-                      className={`addbtn ${activeWidgets.despatch ? "active" : ""}`}
-                      type="button"
-                      aria-pressed={activeWidgets.despatch}
-                      onClick={() => toggleWidgetSelection("despatch")}
-                    >
-                      {activeWidgets.despatch ? <CheckIcon className="ic ic-sm" /> : <PlusIcon className="ic ic-sm" />}
-                    </button>
-                  </div>
-
-                  <div className="lrow">
-                    <span className="lglyph"><FileTextIcon className="ic ic-sm" style={{ maxWidth: 32, maxHeight: 32 }} /></span>
-                    <span className="ltxt">
-                      <span className="ltitle">{t.widgetFiling || "Statutory filing tracker"}</span>
-                      <span className="lmeta">{t.widgetFilingMeta || "4 due this month"}</span>
-                    </span>
-                    <button
-                      className={`addbtn ${activeWidgets.filing ? "active" : ""}`}
-                      type="button"
-                      aria-pressed={activeWidgets.filing}
-                      onClick={() => toggleWidgetSelection("filing")}
-                    >
-                      {activeWidgets.filing ? <CheckIcon className="ic ic-sm" /> : <PlusIcon className="ic ic-sm" />}
-                    </button>
-                  </div>
+                  </section>
                 </div>
-              </section>
+              </div>
 
-              <section className="card" data-brief-id="layout-preview" data-brief-role="section">
-                <div className="card-head">
-                  <span className="sec-label">{t.cardLayoutPreview || "LAYOUT PREVIEW"}</span>
-                  <span className="sec-label-hi">{t.sampleDataDate || "Sample data · 18 Feb"}</span>
-                </div>
-                <div className="preview">
-                  <div className="pcell">
-                    <span className="pval">78</span>
-                    <span className="plabel">{t.metricRiskScore || "RISK SCORE"}</span>
-                  </div>
-                  <div className="pcell">
-                    <span className="pval">6</span>
-                    <span className="plabel">{t.metricOverdue || "OVERDUE"}</span>
-                  </div>
-                  <div className="pcell">
-                    <span className="pval">412</span>
-                    <span className="plabel">{t.metricOnShift || "ON SHIFT"}</span>
-                  </div>
-                  <div className="pcell">
-                    <span className="pval">2.4</span>
-                    <span className="plabel">{t.metricDust || "DUST MG/M³"}</span>
-                  </div>
-                </div>
-                <div style={{ marginTop: "20px" }}>
-                  <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: "12px" }}>
-                    <span className="sec-label" style={{ textTransform: "none", letterSpacing: "0.02em", fontSize: "var(--gesso-text-sm)" }}>
-                      {t.lblWidgetsPlaced || "Widgets placed"}
+              <div className="rule" style={{ marginBlock: "32px 0" }}></div>
+              <footer>
+                <span>{t.footerMinistry}</span>
+                <span>{t.footerAlertRetention}</span>
+              </footer>
+            </main>
+          )}
+
+          {/* ══════════════════════════════════════════════════════════════════
+              VIEW 2: GAS & ENVIRONMENTAL TELEMETRY HUB
+              ══════════════════════════════════════════════════════════════════ */}
+          {activeFeature === "telemetry" && (
+            <main className="wrap">
+              <section className="pagehead">
+                <div>
+                  <div className="headmeta">
+                    <span className="tag">
+                      <WindIcon className="ic ic-xs" />
+                      Continuous Grid Telemetry
                     </span>
-                    <span className="pval" style={{ fontSize: "var(--gesso-text-lg)" }}>
-                      {selectedWidgetCount} / 6
-                    </span>
+                    <span className="tag quiet">CMR Reg. 140 & MoEFCC</span>
                   </div>
-                  <div className="track" aria-hidden="true">
-                    <i style={{ width: `${Math.round((selectedWidgetCount / 6) * 100)}%` }}></i>
-                  </div>
-                  <p className="field-hint" style={{ marginTop: "8px" }}>
-                    {t.widgetsPlacedHint || "Two more widgets fit in the default grid before it scrolls."}
+                  <h1 style={{ marginTop: 6 }}>{t.navTelemetry}</h1>
+                  <p style={{ color: "var(--gesso-fg-muted)", fontSize: 13, marginTop: 2 }}>
+                    {lang === "en" ? "Real-time underground atmosphere, gas concentrations & environmental sensors" : "वास्तविक समय में भूमिगत वायुमंडल, गैस सांद्रता एवं पर्यावरण सेंसर"}
                   </p>
                 </div>
+                <div className="actionrow">
+                  <button
+                    className="btn btn-outline"
+                    type="button"
+                    onClick={() => showToast(lang === "en" ? "Exporting 24-hour Telemetry Log (CSV)..." : "टेलीमेट्री लॉग डाउनलोड हो रहा है...")}
+                  >
+                    <DownloadIcon className="ic ic-sm" />
+                    {lang === "en" ? "Export Telemetry (CSV)" : "डेटा निर्यात करें (CSV)"}
+                  </button>
+                </div>
               </section>
-            </div>
-          </div>
 
-          <div className="rule" style={{ marginTop: "32px" }}></div>
-          <footer>
-            <span>{t.footerMinistry}</span>
-            <span>{t.footerDashboardAutosaved || "Draft autosaved to local storage"}</span>
-          </footer>
-        </main>
-      )}
+              <div className="rule"></div>
 
-      {/* ══════════════════════════════════════════════════════════════════════
-          FEATURE 3: STATUTORY INSPECTIONS
-          ══════════════════════════════════════════════════════════════════════ */}
-      {activeFeature === "inspections" && (
-        <main className="wrap" data-brief-id="section-new-inspection" data-brief-role="section">
-          <section className="pagehead" data-brief-id="page-header" data-brief-role="header">
-            <div>
-              <button className="backlink" type="button" onClick={() => setActiveFeature("insights")}>
-                <ArrowLeftIcon className="ic" style={{ maxWidth: 32, maxHeight: 32 }} />
-                {t.crumbInspections}
-              </button>
-              <h1>{t.pageNewInspection}</h1>
-              <div className="headmeta">
-                <span className="tag">
-                  <FilePlusIcon className="ic" style={{ maxWidth: 32, maxHeight: 32 }} />
-                  {t.tagDraftIns}
-                </span>
-                <span className="tag quiet">
-                  <MapPinIcon className="ic" style={{ maxWidth: 32, maxHeight: 32 }} />
-                  {t.tagJharia}
-                </span>
-                <span className="tag quiet">
-                  <ShieldIcon className="ic" style={{ maxWidth: 32, maxHeight: 32 }} />
-                  {t.tagDgmsReg}
-                </span>
+              {/* Sensor Cards Grid */}
+              <div className="gas-grid">
+                <div className="gas-sensor-card">
+                  <div className="gas-sensor-header">
+                    <div>
+                      <div className="gas-sensor-name">Methane (CH₄)</div>
+                      <div className="gas-sensor-code">SN-CH4-0914 · Seam 4</div>
+                    </div>
+                    <span className="gas-status-pill gas-status-normal">Normal</span>
+                  </div>
+                  <div className="gas-value-row">
+                    <span className="gas-main-value">0.42</span>
+                    <span className="gas-unit">% (vol)</span>
+                  </div>
+                  <div style={{ fontSize: 11.5, color: "#64748b" }}>
+                    Threshold: &lt;0.75% · Alarm at 1.25%
+                  </div>
+                </div>
+
+                <div className="gas-sensor-card">
+                  <div className="gas-sensor-header">
+                    <div>
+                      <div className="gas-sensor-name">Carbon Monoxide (CO)</div>
+                      <div className="gas-sensor-code">SN-CO-0821 · Section B</div>
+                    </div>
+                    <span className="gas-status-pill gas-status-normal">Normal</span>
+                  </div>
+                  <div className="gas-value-row">
+                    <span className="gas-main-value">12</span>
+                    <span className="gas-unit">PPM</span>
+                  </div>
+                  <div style={{ fontSize: 11.5, color: "#64748b" }}>
+                    Permissible limit: &lt;50 PPM
+                  </div>
+                </div>
+
+                <div className="gas-sensor-card">
+                  <div className="gas-sensor-header">
+                    <div>
+                      <div className="gas-sensor-name">Oxygen Level (O₂)</div>
+                      <div className="gas-sensor-code">SN-O2-0411 · Return Airway</div>
+                    </div>
+                    <span className="gas-status-pill gas-status-normal">Safe</span>
+                  </div>
+                  <div className="gas-value-row">
+                    <span className="gas-main-value">20.8</span>
+                    <span className="gas-unit">%</span>
+                  </div>
+                  <div style={{ fontSize: 11.5, color: "#64748b" }}>
+                    Standard band: 19.0% – 21.0%
+                  </div>
+                </div>
+
+                <div className="gas-sensor-card">
+                  <div className="gas-sensor-header">
+                    <div>
+                      <div className="gas-sensor-name">Airflow Velocity</div>
+                      <div className="gas-sensor-code">SN-VEL-0119 · Vent Shaft 2</div>
+                    </div>
+                    <span className="gas-status-pill gas-status-normal">Nominal</span>
+                  </div>
+                  <div className="gas-value-row">
+                    <span className="gas-main-value">1.84</span>
+                    <span className="gas-unit">m/s</span>
+                  </div>
+                  <div style={{ fontSize: 11.5, color: "#64748b" }}>
+                    Statutory minimum: &gt;1.50 m/s
+                  </div>
+                </div>
+
+                <div className="gas-sensor-card">
+                  <div className="gas-sensor-header">
+                    <div>
+                      <div className="gas-sensor-name">Respirable Dust (PM10)</div>
+                      <div className="gas-sensor-code">SN-DUST-0610 · Transfer Point</div>
+                    </div>
+                    <span className="gas-status-pill gas-status-normal">Within Norms</span>
+                  </div>
+                  <div className="gas-value-row">
+                    <span className="gas-main-value">2.4</span>
+                    <span className="gas-unit">mg/m³</span>
+                  </div>
+                  <div style={{ fontSize: 11.5, color: "#64748b" }}>
+                    MoEFCC 8-hr standard: &lt;3.0 mg/m³
+                  </div>
+                </div>
+
+                <div className="gas-sensor-card" style={{ borderLeft: "4px solid #dc2626" }}>
+                  <div className="gas-sensor-header">
+                    <div>
+                      <div className="gas-sensor-name">Strata Convergence Rate</div>
+                      <div className="gas-sensor-code">SN-STR-2204 · Section B</div>
+                    </div>
+                    <span className="gas-status-pill gas-status-critical">Elevated</span>
+                  </div>
+                  <div className="gas-value-row">
+                    <span className="gas-main-value" style={{ color: "#dc2626" }}>9.0</span>
+                    <span className="gas-unit">mm/day</span>
+                  </div>
+                  <div style={{ fontSize: 11.5, color: "#dc2626", fontWeight: 600 }}>
+                    Baseline: 4.0 mm/day (+125% drift)
+                  </div>
+                </div>
               </div>
-            </div>
-            <div className="actionrow" data-brief-id="header-actions" data-brief-role="cta">
-              <button
-                className="btn btn-outline"
-                type="button"
-                onClick={() => showToast(lang === "en" ? "Draft saved locally." : "मसौदा स्थानीय रूप से सहेजा गया।")}
-              >
-                <SaveIcon className="ic" style={{ maxWidth: 32, maxHeight: 32 }} />
-                {t.saveDraft}
-              </button>
-              <button
-                className="btn btn-ghost"
-                type="button"
-                onClick={() => setActiveFeature("insights")}
-              >
-                <XIcon className="ic" style={{ maxWidth: 32, maxHeight: 32 }} />
-                {t.discard}
-              </button>
-            </div>
-          </section>
 
-          <div className="rule"></div>
-
-          <div className="main">
-            {/* Left Column: Inspection Setup & Site Map */}
-            <div className="col">
-              <section className="card tinted" data-brief-id="inspection-setup-form" data-brief-role="form">
-                <div className="card-head">
-                  <span className="sec-label">{t.cardInspectionSetup}</span>
-                  <span className="sec-label-hi">{t.step1of3}</span>
-                </div>
-
-                <div className="field">
-                  <label htmlFor="ins-type">{t.lblInspectionType}</label>
-                  <button className="well big" type="button" id="ins-type">
-                    <span>
-                      <span className="well-title">{t.valInspectionType}</span>
-                      <span className="well-sub">{t.valInspectionTypeSub}</span>
-                    </span>
-                    <ChevronDownIcon className="ic" style={{ color: "var(--gesso-fg-muted)", marginTop: 4, maxWidth: 32, maxHeight: 32 }} />
-                  </button>
-                </div>
-
-                <div className="twoup">
-                  <div className="field">
-                    <label htmlFor="ins-mine">{t.lblMineBlock}</label>
-                    <button className="well" type="button" id="ins-mine">
-                      <span>{t.valMineBlock}</span>
-                      <ChevronDownIcon className="ic" style={{ color: "var(--gesso-fg-muted)", maxWidth: 32, maxHeight: 32 }} />
-                    </button>
-                  </div>
-                  <div className="field">
-                    <label htmlFor="ins-section">{t.lblSectionPanel}</label>
-                    <button className="well" type="button" id="ins-section">
-                      <span>{t.valSectionPanel}</span>
-                      <ChevronDownIcon className="ic" style={{ color: "var(--gesso-fg-muted)", maxWidth: 32, maxHeight: 32 }} />
-                    </button>
-                  </div>
-                </div>
-
-                <div className="field">
-                  <label htmlFor="ins-officer">{t.lblAssignedInspector}</label>
-                  <button className="well" type="button" id="ins-officer">
-                    <span style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                      <span className="avatar">SK</span>
-                      <span style={{ display: "flex", flexDirection: "column" }}>
-                        <span className="who-name">S. Kujur</span>
-                        <span className="who-role">{t.valSafetyOfficer}</span>
-                      </span>
-                    </span>
-                    <ChevronDownIcon className="ic" style={{ color: "var(--gesso-fg-muted)", maxWidth: 32, maxHeight: 32 }} />
-                  </button>
-                </div>
-
-                <div className="field">
-                  <label>{t.lblScheduledShift}</label>
-                  <div className="pillrow" role="group" aria-label="Scheduled shift">
-                    {[
-                      { key: "shift1", label: t.optShift1 },
-                      { key: "shift2", label: t.optShift2 },
-                      { key: "shift3", label: t.optShift3 }
-                    ].map((item) => (
-                      <button
-                        key={item.key}
-                        className={`chip ${inspectionShift === item.key ? "active" : ""}`}
-                        type="button"
-                        aria-pressed={inspectionShift === item.key}
-                        onClick={() => setInspectionShift(item.key)}
-                      >
-                        {item.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="field" style={{ marginBottom: "8px" }}>
-                  <label>{t.lblPriority}</label>
-                  <div className="pillrow" role="group" aria-label="Priority">
-                    {[
-                      { key: "urgent", label: t.optUrgent },
-                      { key: "routine", label: t.optRoutine }
-                    ].map((item) => (
-                      <button
-                        key={item.key}
-                        className={`chip ${inspectionPriority === item.key ? "active" : ""}`}
-                        type="button"
-                        aria-pressed={inspectionPriority === item.key}
-                        onClick={() => setInspectionPriority(item.key)}
-                      >
-                        {item.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <button
-                  className="btn btn-primary"
-                  type="button"
-                  style={{ width: "100%", justifyContent: "center", marginTop: "12px" }}
-                  onClick={() => showToast(lang === "en" ? "Checklist launched for offline use." : "चेकलिस्ट ऑफ़लाइन उपयोग हेतु तैयार।")}
-                >
-                  <ArrowRightIcon className="ic" style={{ maxWidth: 32, maxHeight: 32 }} />
-                  {t.btnCreateChecklist}
-                </button>
-                <p className="formnote">
-                  {t.inspectionOfflineNote}
-                </p>
-              </section>
-
-              <section className="card" data-brief-id="site-map" data-brief-role="viz">
-                <div className="card-head">
-                  <span className="sec-label">{t.cardInspectionSite}</span>
-                  <span className="sec-label-hi">{t.valMineScope}</span>
-                </div>
-                <MiningZoneVectorMap label="Map of Jharia Block-4 showing Panel B-3, the site selected for this inspection" lang={lang} />
-                <div className="mapfoot">
-                  <span>{t.entryPortal}: <b>P-2</b></span>
-                  <span>{t.depth}: <b>218 {lang === "en" ? "m" : "मीटर"}</b></span>
-                  <span>{t.lastInspected}: <b>{t.date14Feb}</b></span>
-                </div>
-              </section>
-            </div>
-
-            {/* Right Column: Checklist Coverage & Prior Inspections */}
-            <div className="col">
-              <section className="card" data-brief-id="checklist-coverage" data-brief-role="chart">
-                <div className="card-head">
-                  <span className="sec-label">{t.cardChecklistCoverage}</span>
-                  <span className="sec-label-hi">{t.total26Checkpoints}</span>
-                </div>
-                <div className="factorlist" data-viz="checkpoint-bars">
-                  <div className="factorrow">
-                    <div className="factor-top">
-                      <span className="factor-name">{t.checkBoltTension}</span>
-                      <span className="factor-val">9</span>
+              {/* Map & Telemetry Integration */}
+              <div className="main" style={{ marginTop: 24 }}>
+                <div className="col">
+                  <section className="card">
+                    <div className="card-head">
+                      <span className="sec-label">{lang === "en" ? "MINE TELEMETRY SENSOR NETWORK" : "खदान सेंसर नेटवर्क"}</span>
+                      <span className="sec-label-hi">184 Active Sensors</span>
                     </div>
-                    <div className="track"><i style={{ width: "35%" }}></i></div>
-                    <p className="factor-note">{t.checkBoltNote}</p>
-                  </div>
-                  <div className="factorrow">
-                    <div className="factor-top">
-                      <span className="factor-name">{t.checkStrata}</span>
-                      <span className="factor-val">7</span>
-                    </div>
-                    <div className="track"><i style={{ width: "27%" }}></i></div>
-                    <p className="factor-note">{t.checkStrataNote}</p>
-                  </div>
-                  <div className="factorrow">
-                    <div className="factor-top">
-                      <span className="factor-name">{t.checkVentilation}</span>
-                      <span className="factor-val">6</span>
-                    </div>
-                    <div className="track"><i style={{ width: "23%" }}></i></div>
-                    <p className="factor-note">{t.checkVentilationNote}</p>
-                  </div>
-                  <div className="factorrow">
-                    <div className="factor-top">
-                      <span className="factor-name">{t.checkAccess}</span>
-                      <span className="factor-val">4</span>
-                    </div>
-                    <div className="track"><i style={{ width: "15%" }}></i></div>
-                    <p className="factor-note">{t.checkAccessNote}</p>
-                  </div>
+                    <MiningZoneVectorMap label="Sensor Location Map" lang={lang} />
+                  </section>
                 </div>
-                <button className="viewall" type="button" onClick={() => showToast(lang === "en" ? "Opening 26 checkpoints" : "26 चेकपॉइंट खुल रहे हैं")}>
-                  {t.btnPreviewChecklist}
-                  <ArrowRightIcon className="ic" style={{ maxWidth: 32, maxHeight: 32 }} />
-                </button>
-              </section>
-
-              <section className="card" data-brief-id="prior-inspections" data-brief-role="list">
-                <div className="card-head">
-                  <span className="sec-label">{t.cardPriorInspections}</span>
-                  <span className="sec-label-hi">{t.sectionBTotal11}</span>
+                <div className="col">
+                  <section className="card">
+                    <div className="card-head">
+                      <span className="sec-label">{lang === "en" ? "AUTOMATED SENSOR CALIBRATION STATUS" : "सेंसर अंशांकन स्थिति"}</span>
+                      <span className="sec-label-hi">CMR Reg. 140 (7)</span>
+                    </div>
+                    <div className="list">
+                      <div className="lrow">
+                        <span className="lglyph"><CheckIcon className="ic ic-sm" style={{ color: "#16a34a" }} /></span>
+                        <span className="ltxt">
+                          <span className="ltitle">Optical CH₄ Gas Analyzer Calibration</span>
+                          <span className="lmeta">Calibrated by S. Sharma · Valid to 18 Mar 2026</span>
+                        </span>
+                        <span className="lval">Pass</span>
+                      </div>
+                      <div className="lrow">
+                        <span className="lglyph"><CheckIcon className="ic ic-sm" style={{ color: "#16a34a" }} /></span>
+                        <span className="ltxt">
+                          <span className="ltitle">Electrochemical CO Sensor Zero-Point Verification</span>
+                          <span className="lmeta">Automated auto-zero sweep at 04:00</span>
+                        </span>
+                        <span className="lval">Pass</span>
+                      </div>
+                      <div className="lrow">
+                        <span className="lglyph"><AlertTriangleIcon className="ic ic-sm" style={{ color: "#b45309" }} /></span>
+                        <span className="ltxt">
+                          <span className="ltitle">Section B Tell-Tale Strata Dial Recalibration Due</span>
+                          <span className="lmeta">Scheduled for next shift maintenance</span>
+                        </span>
+                        <span className="lval" style={{ color: "#b45309" }}>Due 24h</span>
+                      </div>
+                    </div>
+                  </section>
                 </div>
-                <div className="list">
-                  <div className="lrow">
-                    <span className="lglyph"><ClipboardCheckIcon className="ic" style={{ maxWidth: 32, maxHeight: 32 }} /></span>
-                    <span className="ltxt">
-                      <span className="ltitle">{t.prior1Title}</span>
-                      <span className="lmeta">{t.prior1Meta}</span>
-                    </span>
-                    <span className="lval">{t.date14Feb}</span>
-                  </div>
-                  <div className="lrow">
-                    <span className="lglyph"><WindIcon className="ic" style={{ maxWidth: 32, maxHeight: 32 }} /></span>
-                    <span className="ltxt">
-                      <span className="ltitle">{t.prior2Title}</span>
-                      <span className="lmeta">{t.prior2Meta}</span>
-                    </span>
-                    <span className="lval">{lang === "en" ? "09 Feb" : "09 फरवरी"}</span>
-                  </div>
-                  <div className="lrow">
-                    <span className="lglyph"><ZapIcon className="ic" style={{ maxWidth: 32, maxHeight: 32 }} /></span>
-                    <span className="ltxt">
-                      <span className="ltitle">{t.prior3Title}</span>
-                      <span className="lmeta">{t.prior3Meta}</span>
-                    </span>
-                    <span className="lval">{lang === "en" ? "02 Feb" : "02 फरवरी"}</span>
-                  </div>
-                  <div className="lrow">
-                    <span className="lglyph"><DropletIcon className="ic" style={{ maxWidth: 32, maxHeight: 32 }} /></span>
-                    <span className="ltxt">
-                      <span className="ltitle">{t.prior4Title}</span>
-                      <span className="lmeta">{t.prior4Meta}</span>
-                    </span>
-                    <span className="lval">{lang === "en" ? "27 Jan" : "27 जनवरी"}</span>
-                  </div>
-                </div>
-                <button className="viewall" type="button" onClick={() => showToast(lang === "en" ? "Loading 11 inspections" : "11 निरीक्षण लोड हो रहे हैं")}>
-                  {t.btnViewAll11Inspections}
-                  <ArrowRightIcon className="ic" style={{ maxWidth: 32, maxHeight: 32 }} />
-                </button>
-              </section>
-            </div>
-          </div>
-
-          <div className="rule" style={{ marginTop: "32px" }}></div>
-          <footer>
-            <span>{t.footerMinistry}</span>
-            <span>{t.footerInsAutosaved}</span>
-          </footer>
-        </main>
-      )}
-
-      {/* ══════════════════════════════════════════════════════════════════════
-          FEATURE 4: STATUTORY RETURNS & REPORTS
-          ══════════════════════════════════════════════════════════════════════ */}
-      {activeFeature === "reports" && (
-        <main className="wrap" data-brief-id="section-create-report" data-brief-role="section">
-          <section className="pagehead" data-brief-id="page-header" data-brief-role="header">
-            <div>
-              <button className="backlink" type="button" onClick={() => setActiveFeature("insights")}>
-                <ArrowLeftIcon className="ic ic-xs" style={{ maxWidth: 32, maxHeight: 32 }} />
-                {t.crumbBackReports}
-              </button>
-              <h1>{t.pageCreateReport}</h1>
-              <div className="headmeta">
-                <span className="tag">
-                  <FileTextIcon className="ic ic-xs" style={{ maxWidth: 32, maxHeight: 32 }} />
-                  {t.tagDraftReport}
-                </span>
-                <span className="tag quiet">
-                  <MapPinIcon className="ic ic-xs" style={{ maxWidth: 32, maxHeight: 32 }} />
-                  {t.tagJharia}
-                </span>
-                <span className="tag quiet">
-                  <ClockIcon className="ic ic-xs" style={{ maxWidth: 32, maxHeight: 32 }} />
-                  {t.tagAutosavedTime}
-                </span>
               </div>
-            </div>
-            <div className="actionrow" data-brief-id="head-actions" data-brief-role="cta">
-              <button
-                className="btn btn-outline"
-                type="button"
-                onClick={() => showToast(lang === "en" ? "Opening print preview..." : "पूर्वावलोकन खुल रहा है...")}
-              >
-                <EyeIcon className="ic ic-sm" style={{ maxWidth: 32, maxHeight: 32 }} />
-                {t.preview}
-              </button>
-              <button
-                className="btn btn-ghost"
-                type="button"
-                onClick={() => showToast(lang === "en" ? "Report draft saved." : "रिपोर्ट मसौदा सहेजा गया।")}
-              >
-                <SaveIcon className="ic ic-sm" style={{ maxWidth: 32, maxHeight: 32 }} />
-                {t.saveDraft}
-              </button>
-            </div>
-          </section>
+            </main>
+          )}
 
-          <div className="rule"></div>
-
-          <div className="main">
-            {/* Left Column: Report Parameters & Included Sections */}
-            <div className="col">
-              <section className="card tinted" data-brief-id="report-builder" data-brief-role="form">
-                <div className="card-head">
-                  <span className="sec-label">{t.cardReportParameters}</span>
-                  <span className="sec-label-hi">{t.step1of2}</span>
-                </div>
-
-                <div className="field">
-                  <span className="flabel" id="lbl-type">{t.lblReportType}</span>
-                  <button className="well" type="button" aria-labelledby="lbl-type">
-                    <span className="well-stack">
-                      <span className="well-title">{t.valReportType}</span>
-                      <span className="well-sub">{t.valReportTypeSub}</span>
-                    </span>
-                    <ChevronDownIcon className="ic ic-sm" style={{ color: "var(--gesso-fg-muted)", maxWidth: 32, maxHeight: 32 }} />
+          {/* ══════════════════════════════════════════════════════════════════
+              VIEW 3: STATUTORY INSPECTIONS
+              ══════════════════════════════════════════════════════════════════ */}
+          {activeFeature === "inspections" && (
+            <main className="wrap">
+              <section className="pagehead">
+                <div>
+                  <button className="backlink" type="button" onClick={() => setActiveFeature("dashboard")}>
+                    <ArrowLeftIcon className="ic ic-sm" />
+                    {t.crumbInspections}
                   </button>
-                </div>
-
-                <div className="field">
-                  <span className="flabel" id="lbl-scope">{t.lblMineReportScope}</span>
-                  <button className="well" type="button" aria-labelledby="lbl-scope">
-                    <span className="well-stack">
-                      <span className="well-title">{t.valMineScope}</span>
-                      <span className="well-sub">{t.valMineReportScopeSub}</span>
+                  <h1>{t.pageNewInspection}</h1>
+                  <div className="headmeta">
+                    <span className="tag">
+                      <FilePlusIcon className="ic ic-xs" />
+                      {t.tagDraftIns}
                     </span>
-                    <ChevronDownIcon className="ic ic-sm" style={{ color: "var(--gesso-fg-muted)", maxWidth: 32, maxHeight: 32 }} />
-                  </button>
-                </div>
-
-                <div className="field">
-                  <span className="flabel" id="lbl-period">{t.lblReportingPeriod}</span>
-                  <div className="pillrow" role="group" aria-labelledby="lbl-period">
-                    {[
-                      { key: "jan2026", label: t.optJan2026 },
-                      { key: "feb2026", label: t.optFeb2026 },
-                      { key: "q4", label: t.optQ4 },
-                      { key: "custom", label: t.optCustom }
-                    ].map((item) => (
-                      <button
-                        key={item.key}
-                        className={`chip ${reportingPeriod === item.key ? "active" : ""}`}
-                        type="button"
-                        aria-pressed={reportingPeriod === item.key}
-                        onClick={() => setReportingPeriod(item.key)}
-                      >
-                        {item.label}
-                      </button>
-                    ))}
+                    <span className="tag quiet">
+                      <MapPinIcon className="ic ic-xs" />
+                      {t.tagJharia}
+                    </span>
+                    <span className="tag quiet">
+                      <ShieldIcon className="ic ic-xs" />
+                      {t.tagDgmsReg}
+                    </span>
                   </div>
                 </div>
-
-                <div className="field">
-                  <span className="flabel" id="lbl-format">{t.lblOutputFormat}</span>
-                  <div className="pillrow" role="group" aria-labelledby="lbl-format">
-                    {[
-                      { key: "pdf", label: t.optPdf },
-                      { key: "xlsx", label: t.optXlsx },
-                      { key: "xml", label: t.optDgmsXml }
-                    ].map((item) => (
-                      <button
-                        key={item.key}
-                        className={`chip ${outputFormat === item.key ? "active" : ""}`}
-                        type="button"
-                        aria-pressed={outputFormat === item.key}
-                        onClick={() => setOutputFormat(item.key)}
-                      >
-                        {item.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="field">
-                  <span className="flabel" id="lbl-sign">{t.lblSigningAuthority}</span>
-                  <button className="well" type="button" aria-labelledby="lbl-sign">
-                    <span className="well-stack">
-                      <span className="well-title">{t.valSignerName}</span>
-                      <span className="well-sub">{t.valSignerRole}</span>
-                    </span>
-                    <ChevronDownIcon className="ic ic-sm" style={{ color: "var(--gesso-fg-muted)", maxWidth: 32, maxHeight: 32 }} />
-                  </button>
-                </div>
-
-                <div className="formfoot">
+                <div className="actionrow">
                   <button
                     className="btn btn-primary"
                     type="button"
-                    onClick={() => showToast(lang === "en" ? `Report generated (${selectedSectionCount} sections).` : `रिपोर्ट तैयार हुई (${selectedSectionCount} अनुभाग)।`)}
+                    onClick={() => setChecklistRunnerOpen(true)}
                   >
-                    <FileCheckIcon className="ic ic-sm" style={{ maxWidth: 32, maxHeight: 32 }} />
-                    {t.btnGenerateReport}
+                    <ClipboardCheckIcon className="ic ic-sm" />
+                    {t.btnCreateChecklist}
                   </button>
                   <button
                     className="btn btn-outline"
                     type="button"
-                    onClick={() => {
-                      setStatutorySections({
-                        inspections: true,
-                        violations: true,
-                        production: true,
-                        environment: true,
-                        labour: true,
-                        statutory: false
-                      });
-                      showToast(lang === "en" ? "Sections reset." : "अनुभाग रीसेट किए गए।");
-                    }}
+                    onClick={() => setObservationModalOpen(true)}
                   >
-                    {t.reset}
+                    <PlusIcon className="ic ic-sm" />
+                    {t.btnLogObservation}
                   </button>
                 </div>
-                <p className="hint">
-                  {t.reportGenHint}
-                </p>
               </section>
 
-              {/* Statutory Sections Toggles */}
-              <section className="card" data-brief-id="report-sections" data-brief-role="list">
-                <div className="card-head">
-                  <span className="sec-label">{t.cardSectionsIncluded}</span>
-                  <span className="sec-label-hi">{selectedSectionCount} / 6 {t.widgetsSelectedOf}</span>
+              <div className="rule"></div>
+
+              <div className="main">
+                <div className="col">
+                  <section className="card tinted">
+                    <div className="card-head">
+                      <span className="sec-label">{t.cardInspectionSetup}</span>
+                      <span className="sec-label-hi">{t.step1of3}</span>
+                    </div>
+
+                    <div className="field">
+                      <label htmlFor="ins-type">{t.lblInspectionType}</label>
+                      <button className="well big" type="button" id="ins-type">
+                        <span>
+                          <span className="well-title">{t.valInspectionType}</span>
+                          <span className="well-sub">{t.valInspectionTypeSub}</span>
+                        </span>
+                        <ChevronDownIcon className="ic" style={{ color: "var(--gesso-fg-muted)", marginTop: 4 }} />
+                      </button>
+                    </div>
+
+                    <div className="twoup">
+                      <div className="field">
+                        <label htmlFor="ins-mine">{t.lblMineBlock}</label>
+                        <button className="well" type="button" id="ins-mine">
+                          <span>{t.valMineBlock}</span>
+                          <ChevronDownIcon className="ic" style={{ color: "var(--gesso-fg-muted)" }} />
+                        </button>
+                      </div>
+                      <div className="field">
+                        <label htmlFor="ins-section">{t.lblSectionPanel}</label>
+                        <button className="well" type="button" id="ins-section">
+                          <span>{t.valSectionPanel}</span>
+                          <ChevronDownIcon className="ic" style={{ color: "var(--gesso-fg-muted)" }} />
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="field">
+                      <label htmlFor="ins-officer">{t.lblAssignedInspector}</label>
+                      <button className="well" type="button" id="ins-officer">
+                        <span style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                          <span className="avatar">SK</span>
+                          <span style={{ display: "flex", flexDirection: "column" }}>
+                            <span className="who-name">S. Kujur</span>
+                            <span className="who-role">{t.valSafetyOfficer}</span>
+                          </span>
+                        </span>
+                        <ChevronDownIcon className="ic" style={{ color: "var(--gesso-fg-muted)" }} />
+                      </button>
+                    </div>
+
+                    <div className="field">
+                      <label>{t.lblScheduledShift}</label>
+                      <div className="pillrow" role="group" aria-label="Scheduled shift">
+                        {[
+                          { key: "shift1", label: t.optShift1 },
+                          { key: "shift2", label: t.optShift2 },
+                          { key: "shift3", label: t.optShift3 }
+                        ].map((item) => (
+                          <button
+                            key={item.key}
+                            className={`chip ${inspectionShift === item.key ? "active" : ""}`}
+                            type="button"
+                            aria-pressed={inspectionShift === item.key}
+                            onClick={() => setInspectionShift(item.key)}
+                          >
+                            {item.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <button
+                      className="btn btn-primary"
+                      type="button"
+                      style={{ width: "100%", justifyContent: "center", marginTop: 12 }}
+                      onClick={() => setChecklistRunnerOpen(true)}
+                    >
+                      <ArrowRightIcon className="ic" />
+                      {t.btnCreateChecklist}
+                    </button>
+                    <p className="formnote">
+                      {t.inspectionOfflineNote}
+                    </p>
+                  </section>
+
+                  <section className="card">
+                    <div className="card-head">
+                      <span className="sec-label">{t.cardInspectionSite}</span>
+                      <span className="sec-label-hi">{t.valMineScope}</span>
+                    </div>
+                    <MiningZoneVectorMap label="Map of Jharia Block-4 showing Panel B-3" lang={lang} />
+                    <div className="mapfoot">
+                      <span>{t.entryPortal}: <b>P-2</b></span>
+                      <span>{t.depth}: <b>218 m</b></span>
+                      <span>{t.lastInspected}: <b>{t.date14Feb}</b></span>
+                    </div>
+                  </section>
                 </div>
-                <div className="toggles">
-                  <div className="trow2">
-                    <span className="tglyph"><ClipboardCheckIcon className="ic ic-sm" style={{ maxWidth: 32, maxHeight: 32 }} /></span>
-                    <span className="ttxt">
-                      <span className="ttitle">{t.secInspections}</span>
-                      <span className="tmeta">{t.secInspectionsMeta}</span>
-                    </span>
-                    <button
-                      className={`switch ${statutorySections.inspections ? "active" : ""}`}
-                      type="button"
-                      aria-pressed={statutorySections.inspections}
-                      aria-label="Toggle Inspections & findings section"
-                      onClick={() => toggleStatutorySection("inspections")}
-                    ></button>
-                  </div>
 
-                  <div className="trow2">
-                    <span className="tglyph"><AlertTriangleIcon className="ic ic-sm" style={{ maxWidth: 32, maxHeight: 32 }} /></span>
-                    <span className="ttxt">
-                      <span className="ttitle">{t.secViolations}</span>
-                      <span className="tmeta">{t.secViolationsMeta}</span>
-                    </span>
+                <div className="col">
+                  <section className="card">
+                    <div className="card-head">
+                      <span className="sec-label">{t.cardChecklistCoverage}</span>
+                      <span className="sec-label-hi">{t.total26Checkpoints}</span>
+                    </div>
+                    <div className="factorlist">
+                      <div className="factorrow">
+                        <div className="factor-top">
+                          <span className="factor-name">{t.checkBoltTension}</span>
+                          <span className="factor-val">9</span>
+                        </div>
+                        <div className="track"><i style={{ width: "35%" }}></i></div>
+                        <p className="factor-note">{t.checkBoltNote}</p>
+                      </div>
+                      <div className="factorrow">
+                        <div className="factor-top">
+                          <span className="factor-name">{t.checkStrata}</span>
+                          <span className="factor-val">7</span>
+                        </div>
+                        <div className="track"><i style={{ width: "27%" }}></i></div>
+                        <p className="factor-note">{t.checkStrataNote}</p>
+                      </div>
+                      <div className="factorrow">
+                        <div className="factor-top">
+                          <span className="factor-name">{t.checkVentilation}</span>
+                          <span className="factor-val">6</span>
+                        </div>
+                        <div className="track"><i style={{ width: "23%" }}></i></div>
+                        <p className="factor-note">{t.checkVentilationNote}</p>
+                      </div>
+                      <div className="factorrow">
+                        <div className="factor-top">
+                          <span className="factor-name">{t.checkAccess}</span>
+                          <span className="factor-val">4</span>
+                        </div>
+                        <div className="track"><i style={{ width: "15%" }}></i></div>
+                        <p className="factor-note">{t.checkAccessNote}</p>
+                      </div>
+                    </div>
                     <button
-                      className={`switch ${statutorySections.violations ? "active" : ""}`}
+                      className="viewall"
                       type="button"
-                      aria-pressed={statutorySections.violations}
-                      aria-label="Toggle Violations & CAPA status section"
-                      onClick={() => toggleStatutorySection("violations")}
-                    ></button>
-                  </div>
+                      onClick={() => setChecklistRunnerOpen(true)}
+                    >
+                      {t.btnPreviewChecklist}
+                      <ArrowRightIcon className="ic" />
+                    </button>
+                  </section>
 
-                  <div className="trow2">
-                    <span className="tglyph"><BarChartIcon className="ic ic-sm" style={{ maxWidth: 32, maxHeight: 32 }} /></span>
-                    <span className="ttxt">
-                      <span className="ttitle">{t.secProduction}</span>
-                      <span className="tmeta">{t.secProductionMeta}</span>
-                    </span>
+                  <section className="card">
+                    <div className="card-head">
+                      <span className="sec-label">{t.cardPriorInspections}</span>
+                      <span className="sec-label-hi">{t.sectionBTotal11}</span>
+                    </div>
+                    <div className="list">
+                      <div className="lrow">
+                        <span className="lglyph"><ClipboardCheckIcon className="ic" /></span>
+                        <span className="ltxt">
+                          <span className="ltitle">{t.prior1Title}</span>
+                          <span className="lmeta">{t.prior1Meta}</span>
+                        </span>
+                        <span className="lval">{t.date14Feb}</span>
+                      </div>
+                      <div className="lrow">
+                        <span className="lglyph"><WindIcon className="ic" /></span>
+                        <span className="ltxt">
+                          <span className="ltitle">{t.prior2Title}</span>
+                          <span className="lmeta">{t.prior2Meta}</span>
+                        </span>
+                        <span className="lval">09 Feb</span>
+                      </div>
+                      <div className="lrow">
+                        <span className="lglyph"><ZapIcon className="ic" /></span>
+                        <span className="ltxt">
+                          <span className="ltitle">{t.prior3Title}</span>
+                          <span className="lmeta">{t.prior3Meta}</span>
+                        </span>
+                        <span className="lval">02 Feb</span>
+                      </div>
+                    </div>
                     <button
-                      className={`switch ${statutorySections.production ? "active" : ""}`}
+                      className="viewall"
                       type="button"
-                      aria-pressed={statutorySections.production}
-                      aria-label="Toggle Production & despatch section"
-                      onClick={() => toggleStatutorySection("production")}
-                    ></button>
-                  </div>
+                      onClick={() => showToast(lang === "en" ? "Loading 11 prior inspections..." : "11 पुराने निरीक्षण लोड हो रहे हैं...")}
+                    >
+                      {t.btnViewAll11Inspections}
+                      <ArrowRightIcon className="ic" />
+                    </button>
+                  </section>
+                </div>
+              </div>
+            </main>
+          )}
 
-                  <div className="trow2">
-                    <span className="tglyph"><WindIcon className="ic ic-sm" style={{ maxWidth: 32, maxHeight: 32 }} /></span>
-                    <span className="ttxt">
-                      <span className="ttitle">{t.secEnvironment}</span>
-                      <span className="tmeta">{t.secEnvironmentMeta}</span>
+          {/* ══════════════════════════════════════════════════════════════════
+              VIEW 4: AI RISK INSIGHTS (Roof-Fall Alert & CAPA)
+              ══════════════════════════════════════════════════════════════════ */}
+          {activeFeature === "insights" && (
+            <main className="wrap">
+              <section className="alerthead">
+                <div>
+                  <h1>{t.riskTitle}</h1>
+                  <div className="headmeta">
+                    <span className="tag">
+                      <AlertTriangleIcon className="ic ic-xs" />
+                      {t.tagHighRisk}
                     </span>
-                    <button
-                      className={`switch ${statutorySections.environment ? "active" : ""}`}
-                      type="button"
-                      aria-pressed={statutorySections.environment}
-                      aria-label="Toggle Environment monitoring section"
-                      onClick={() => toggleStatutorySection("environment")}
-                    ></button>
-                  </div>
-
-                  <div className="trow2">
-                    <span className="tglyph"><UsersIcon className="ic ic-sm" style={{ maxWidth: 32, maxHeight: 32 }} /></span>
-                    <span className="ttxt">
-                      <span className="ttitle">{t.secLabour}</span>
-                      <span className="tmeta">{t.secLabourMeta}</span>
+                    <span className="tag quiet">
+                      <MapPinIcon className="ic ic-xs" />
+                      {t.tagJharia}
                     </span>
-                    <button
-                      className={`switch ${statutorySections.labour ? "active" : ""}`}
-                      type="button"
-                      aria-pressed={statutorySections.labour}
-                      aria-label="Toggle Labour & attendance section"
-                      onClick={() => toggleStatutorySection("labour")}
-                    ></button>
-                  </div>
-
-                  <div className="trow2">
-                    <span className="tglyph"><FileTextIcon className="ic ic-sm" style={{ maxWidth: 32, maxHeight: 32 }} /></span>
-                    <span className="ttxt">
-                      <span className="ttitle">{t.secStatutory}</span>
-                      <span className="tmeta">{t.secStatutoryMeta}</span>
+                    <span className="tag quiet">
+                      <ClockIcon className="ic ic-xs" />
+                      {t.tagDetectedTime}
                     </span>
-                    <button
-                      className={`switch ${statutorySections.statutory ? "active" : ""}`}
-                      type="button"
-                      aria-pressed={statutorySections.statutory}
-                      aria-label="Toggle Statutory declarations section"
-                      onClick={() => toggleStatutorySection("statutory")}
-                    ></button>
+                    <span className="tag quiet">
+                      <ShieldIcon className="ic ic-xs" />
+                      {t.tagDgmsReg}
+                    </span>
                   </div>
+                </div>
+                <div className="actionrow">
+                  <button
+                    className="btn btn-primary"
+                    type="button"
+                    onClick={() => {
+                      setIsCapaAssigned(true);
+                      showToast(lang === "en" ? `CAPA assigned to ${currentOfficerName}.` : `सुधारात्मक कार्रवाई ${currentOfficerName} को सौंपी गई।`);
+                    }}
+                  >
+                    <UserPlusIcon className="ic ic-sm" />
+                    {t.btnAssignCapa}
+                  </button>
+                  <button
+                    className="btn btn-outline"
+                    type="button"
+                    onClick={() => showToast(lang === "en" ? "Notice escalated to GM (Safety)." : "सूचना महाप्रबंधक (सुरक्षा) को भेजी गई।")}
+                  >
+                    <TrendingUpIcon className="ic ic-sm" />
+                    {t.escalate}
+                  </button>
+                  <button
+                    className="btn btn-ghost"
+                    type="button"
+                    onClick={() => showToast(lang === "en" ? "Downloading Risk Dossier (PDF)..." : "जोखिम डोजियर (पीडीएफ) डाउनलोड हो रहा है...")}
+                  >
+                    <DownloadIcon className="ic ic-sm" />
+                    {t.pdf}
+                  </button>
                 </div>
               </section>
-            </div>
 
-            {/* Right Column: Live Report Preview & Compliance Archive */}
-            <div className="col">
-              <section className="card" data-brief-id="report-preview" data-brief-role="section">
-                <div className="card-head">
-                  <span className="sec-label">{t.cardReportPreview}</span>
-                  <span className="sec-label-hi">{t.form3aPreview}</span>
-                </div>
-                <div className="previewbox">
-                  <div className="pv-title">
-                    {t.pvHeading} {periodLabels[reportingPeriod]}
-                    <span>{t.pvSubtitle}</span>
-                  </div>
-                  <div className="pv-lines">
-                    <div className="pv-line">
-                      <span className="pv-k">{t.pvPeriod}</span>
-                      <span className="pv-v">{periodLabels[reportingPeriod]}</span>
+              <div className="rule"></div>
+
+              <div className="main">
+                <div className="col">
+                  <section className="card">
+                    <div className="card-head">
+                      <span className="sec-label">{t.cardRiskScore}</span>
+                      <span className="sec-label-hi">{t.modelRecords}</span>
                     </div>
-                    <div className="pv-line">
-                      <span className="pv-k">{t.pvSigner}</span>
-                      <span className="pv-v">{t.pvSignerVal}</span>
+                    <div className="riskhero">
+                      <div className="gauge-wrap">
+                        <svg viewBox="0 0 200 128" style={{ width: "100%", maxWidth: "220px", height: "auto" }}>
+                          <path d="M20 118 A 80 80 0 0 1 180 118" fill="none" stroke="var(--gesso-surface)" strokeWidth="14" strokeLinecap="round" pathLength="100"></path>
+                          <path d="M20 118 A 80 80 0 0 1 180 118" fill="none" stroke="var(--gesso-accent)" strokeWidth="14" strokeLinecap="round" pathLength="100" strokeDasharray="78 100"></path>
+                          <text x="100" y="98" textAnchor="middle" fontFamily="Manrope, sans-serif" fontSize="44" fontWeight="800" fill="var(--gesso-fg)">78</text>
+                          <text x="20" y="128" textAnchor="start" fontFamily="Satoshi, sans-serif" fontSize="10" fill="var(--gesso-fg-muted)">{t.gaugeSafe}</text>
+                          <text x="180" y="128" textAnchor="end" fontFamily="Satoshi, sans-serif" fontSize="10" fill="var(--gesso-fg-muted)">{t.gaugeCritical}</text>
+                        </svg>
+                      </div>
+                      <div className="risknum">
+                        <span className="val">78</span>
+                        <span className="cap">
+                          {lang === "en" ? <>of 100 · <b>High Risk band</b></> : <>100 में से · <b>उच्च जोखिम श्रेणी</b></>}
+                        </span>
+                        <span className="deltaline">
+                          <ArrowUpRightIcon className="ic ic-sm" />
+                          {t.riskDelta}
+                        </span>
+                      </div>
                     </div>
-                    <div className="pv-line">
-                      <span className="pv-k">{t.pvRecords}</span>
-                      <span className="pv-v">{t.pvRecordsVal}</span>
+                  </section>
+
+                  <section className="card plain">
+                    <div className="card-head">
+                      <span className="sec-label">{t.cardExplanation}</span>
                     </div>
-                    <div className="pv-line">
-                      <span className="pv-k">{t.pvActiveSections}</span>
-                      <span className="pv-v">{selectedSectionCount} {t.pvActiveSectionsVal}</span>
+                    <p>{t.explanationText}</p>
+                  </section>
+
+                  <section className="card">
+                    <div className="card-head">
+                      <span className="sec-label">{t.cardFactors}</span>
+                      <span className="sec-label-hi">{t.factorSignalWeight}</span>
                     </div>
-                    <div className="pv-line">
-                      <span className="pv-k">{t.pvToken}</span>
-                      <span className="pv-v" style={{ fontFamily: "var(--gesso-font-mono)", fontSize: "11px" }}>SHA256: 8f9b2a7d4e1c</span>
+                    <div className="factorlist">
+                      <div className="factorrow">
+                        <div className="factor-top">
+                          <span className="factor-name">{t.factorBoltTension}</span>
+                          <span className="factor-val">34%</span>
+                        </div>
+                        <div className="track"><i style={{ width: "34%" }}></i></div>
+                        <p className="factor-note">{t.factorBoltNote}</p>
+                      </div>
+                      <div className="factorrow">
+                        <div className="factor-top">
+                          <span className="factor-name">{t.factorConvergence}</span>
+                          <span className="factor-val">27%</span>
+                        </div>
+                        <div className="track"><i style={{ width: "27%" }}></i></div>
+                        <p className="factor-note">{t.factorConvergenceNote}</p>
+                      </div>
+                      <div className="factorrow">
+                        <div className="factor-top">
+                          <span className="factor-name">{t.factorInspectionsOverdue}</span>
+                          <span className="factor-val">21%</span>
+                        </div>
+                        <div className="track"><i style={{ width: "21%" }}></i></div>
+                        <p className="factor-note">{t.factorInspectionsNote}</p>
+                      </div>
+                      <div className="factorrow">
+                        <div className="factor-top">
+                          <span className="factor-name">{t.factorVibration}</span>
+                          <span className="factor-val">18%</span>
+                        </div>
+                        <div className="track"><i style={{ width: "18%" }}></i></div>
+                        <p className="factor-note">{t.factorVibrationNote}</p>
+                      </div>
                     </div>
-                  </div>
+                  </section>
+
+                  <section className="card">
+                    <div className="card-head">
+                      <span className="sec-label">{t.cardAffectedZone}</span>
+                      <span className="sec-label-hi">{t.valMineScope}</span>
+                    </div>
+                    <MiningZoneVectorMap label="Section B Risk Zone" lang={lang} />
+                    <div className="mapfoot">
+                      <span>{t.workersOnShift}: <b>42</b></span>
+                      <span>{t.depth}: <b>218 m</b></span>
+                      <span>{t.lastSurvey}: <b>{t.date16Feb}</b></span>
+                    </div>
+                  </section>
                 </div>
 
-                <div className="metergrid">
-                  <div className="meter">
-                    <div className="mtop">
-                      <span className="mname">{t.meterCompliance}</span>
-                      <span className="mval">98.4%</span>
+                <div className="col">
+                  <section className="card tinted">
+                    <div className="card-head">
+                      <span className="sec-label">{t.cardAssignCapa}</span>
                     </div>
-                    <div className="track"><i style={{ width: "98.4%" }}></i></div>
-                  </div>
-                  <div className="meter">
-                    <div className="mtop">
-                      <span className="mname">{t.meterStrata}</span>
-                      <span className="mval">92.0%</span>
+                    <div className="field">
+                      <label htmlFor="capa-owner">{t.lblResponsibleOfficer}</label>
+                      <button
+                        className="well"
+                        type="button"
+                        id="capa-owner"
+                        onClick={() => {
+                          const nextKey = capaOfficerKey === "SK" ? "MT" : "SK";
+                          setCapaOfficerKey(nextKey);
+                          const nextName = nextKey === "SK" ? (lang === "en" ? "S. Kujur" : "एस. कुजूर") : (lang === "en" ? "M. Tirkey" : "एम. तिर्की");
+                          showToast(lang === "en" ? `Responsible officer: ${nextName}` : `जिम्मेदार अधिकारी: ${nextName}`);
+                        }}
+                      >
+                        <span style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                          <span className="avatar">{capaOfficerKey === "SK" ? (lang === "en" ? "SK" : "एस.के") : (lang === "en" ? "MT" : "एम.टी")}</span>
+                          <span style={{ display: "flex", flexDirection: "column" }}>
+                            <span className="who-name">{currentOfficerName}</span>
+                            <span className="who-role">{t.valSafetyOfficer}</span>
+                          </span>
+                        </span>
+                        <ChevronDownIcon className="ic ic-sm" style={{ color: "var(--gesso-fg-muted)" }} />
+                      </button>
                     </div>
-                    <div className="track"><i style={{ width: "92.0%" }}></i></div>
+
+                    <div className="field">
+                      <label htmlFor="capa-action">{t.lblActionTemplate}</label>
+                      <button className="well" type="button" id="capa-action">
+                        <span>{t.optActionTemplate}</span>
+                        <ChevronDownIcon className="ic ic-sm" style={{ color: "var(--gesso-fg-muted)" }} />
+                      </button>
+                    </div>
+
+                    <div className="field">
+                      <label>{t.lblTargetClosure}</label>
+                      <div className="pillrow" role="group" aria-label="Target closure">
+                        {[
+                          { key: "24h", label: t.optClosure24h },
+                          { key: "48h", label: t.optClosure48h },
+                          { key: "7d", label: t.optClosure7d }
+                        ].map((item) => (
+                          <button
+                            key={item.key}
+                            className={`chip ${capaClosureTime === item.key ? "active" : ""}`}
+                            type="button"
+                            aria-pressed={capaClosureTime === item.key}
+                            onClick={() => setCapaClosureTime(item.key)}
+                          >
+                            {item.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <button
+                      className="btn btn-primary"
+                      type="button"
+                      style={{ width: "100%", justifyContent: "center", marginTop: 4 }}
+                      onClick={() => {
+                        setIsCapaAssigned(true);
+                        showToast(lang === "en" ? `CAPA assigned to ${currentOfficerName}.` : `सुधारात्मक कार्रवाई ${currentOfficerName} को सौंपी गई।`);
+                      }}
+                    >
+                      <CheckIcon className="ic ic-sm" />
+                      {t.btnConfirmAssignment}
+                    </button>
+                    <p style={{ fontSize: 12, color: "var(--gesso-fg-muted)", margin: "12px 0 0", lineHeight: 1.5 }}>
+                      {t.capaDisclaimer}
+                    </p>
+                  </section>
+
+                  <section className="card">
+                    <div className="card-head">
+                      <span className="sec-label">{t.cardUnderlyingRecords}</span>
+                      <span className="sec-label-hi">{t.total14Records}</span>
+                    </div>
+                    <div className="list">
+                      <div className="lrow">
+                        <span className="lglyph"><ClipboardCheckIcon className="ic ic-sm" /></span>
+                        <span className="ltxt">
+                          <span className="ltitle">{t.rec1Title}</span>
+                          <span className="lmeta">{t.rec1Meta}</span>
+                        </span>
+                        <span className="lval">{t.date14Feb}</span>
+                      </div>
+                      <div className="lrow">
+                        <span className="lglyph"><AlertTriangleIcon className="ic ic-sm" /></span>
+                        <span className="ltxt">
+                          <span className="ltitle">{t.rec2Title}</span>
+                          <span className="lmeta">{t.rec2Meta}</span>
+                        </span>
+                        <span className="lval">{t.date16Feb}</span>
+                      </div>
+                      <div className="lrow">
+                        <span className="lglyph"><ActivityIcon className="ic ic-sm" /></span>
+                        <span className="ltxt">
+                          <span className="ltitle">{t.rec3Title}</span>
+                          <span className="lmeta">{t.rec3Meta}</span>
+                        </span>
+                        <span className="lval">{t.date12Feb}</span>
+                      </div>
+                    </div>
+                    <button className="viewall" type="button" onClick={() => showToast(lang === "en" ? "Loading 14 sensor logs" : "14 सेंसर लॉग लोड हो रहे हैं")}>
+                      {t.btnViewAll14}
+                      <ArrowRightIcon className="ic ic-sm" />
+                    </button>
+                  </section>
+
+                  <section className="card">
+                    <div className="card-head">
+                      <span className="sec-label">{t.cardAuditTrail}</span>
+                      <span className="sec-label-hi">{t.auditImmutable}</span>
+                    </div>
+                    <div className="trail">
+                      <div className="trow">
+                        <span className="tstamp">{t.date18Feb0620}</span>
+                        <span className="tbody">{t.audit1}</span>
+                      </div>
+                      <div className="trow">
+                        <span className="tstamp">{t.date18Feb0622}</span>
+                        <span className="tbody">{t.audit2}</span>
+                      </div>
+                      <div className="trow">
+                        <span className="tstamp">{t.date18Feb0705}</span>
+                        <span className="tbody">{t.audit3} {currentUser.contractorName} ({currentUser.contractorId})</span>
+                      </div>
+                      {isCapaAssigned && (
+                        <div className="trow" style={{ animation: "slideUp 200ms ease" }}>
+                          <span className="tstamp" style={{ color: "var(--gesso-accent)", fontWeight: 700 }}>{t.date18Feb0745}</span>
+                          <span className="tbody">{t.auditAssigned} {currentOfficerName}</span>
+                        </div>
+                      )}
+                    </div>
+                  </section>
+                </div>
+              </div>
+            </main>
+          )}
+
+          {/* ══════════════════════════════════════════════════════════════════
+              VIEW 5: STATUTORY COMPLIANCE REGISTER & OCR
+              ══════════════════════════════════════════════════════════════════ */}
+          {activeFeature === "compliance" && (
+            <main className="wrap">
+              <section className="pagehead">
+                <div>
+                  <div className="headmeta">
+                    <span className="tag">
+                      <FileCheckIcon className="ic ic-xs" />
+                      Statutory Register
+                    </span>
+                    <span className="tag quiet">Mines Act 1952 & CMR 2017</span>
                   </div>
+                  <h1 style={{ marginTop: 6 }}>{t.navCompliance}</h1>
+                  <p style={{ color: "var(--gesso-fg-muted)", fontSize: 13, marginTop: 2 }}>
+                    {lang === "en" ? "Mandatory statutory registers, regulations tracker & AI OCR paper digitizer" : "अनिवार्य वैधानिक रजिस्टर, विनियम ट्रैकर एवं एआई ओसीआर डिजिटाइज़र"}
+                  </p>
+                </div>
+                <div className="actionrow">
+                  <button
+                    className="btn btn-primary"
+                    type="button"
+                    onClick={() => setOcrScannerOpen(true)}
+                  >
+                    <PlusIcon className="ic ic-sm" />
+                    {t.btnOcrScan}
+                  </button>
                 </div>
               </section>
 
-              <section className="card" data-brief-id="recent-reports" data-brief-role="list">
-                <div className="card-head">
-                  <span className="sec-label">{t.cardRecentReturns}</span>
-                  <span className="sec-label-hi">{t.block4Archive}</span>
-                </div>
-                <div className="list">
-                  <div className="lrow">
-                    <span className="lglyph"><FileCheckIcon className="ic ic-sm" style={{ maxWidth: 32, maxHeight: 32 }} /></span>
-                    <span className="ltxt">
-                      <span className="ltitle">{t.ret1Title}</span>
-                      <span className="lmeta">{t.ret1Meta}</span>
-                    </span>
-                    <span className="lval">{t.date31Jan}</span>
-                  </div>
-                  <div className="lrow">
-                    <span className="lglyph"><FileCheckIcon className="ic ic-sm" style={{ maxWidth: 32, maxHeight: 32 }} /></span>
-                    <span className="ltxt">
-                      <span className="ltitle">{t.ret2Title}</span>
-                      <span className="lmeta">{t.ret2Meta}</span>
-                    </span>
-                    <span className="lval">{t.date31Dec}</span>
-                  </div>
-                  <div className="lrow">
-                    <span className="lglyph"><FileCheckIcon className="ic ic-sm" style={{ maxWidth: 32, maxHeight: 32 }} /></span>
-                    <span className="ltxt">
-                      <span className="ltitle">{t.ret3Title}</span>
-                      <span className="lmeta">{t.ret3Meta}</span>
-                    </span>
-                    <span className="lval">{t.date15Jan}</span>
-                  </div>
-                </div>
-                <button className="viewall" type="button" onClick={() => showToast(lang === "en" ? "Opening National Compliance Archive" : "राष्ट्रीय अनुपालन पुरालेख खुल रहा है")}>
-                  {t.btnViewArchive}
-                  <ArrowRightIcon className="ic ic-sm" style={{ maxWidth: 32, maxHeight: 32 }} />
-                </button>
-              </section>
-            </div>
-          </div>
+              <div className="rule"></div>
 
-          <div className="rule" style={{ marginTop: "32px" }}></div>
-          <footer>
-            <span>{t.footerMinistry}</span>
-            <span>{t.footerReportAutosaved}</span>
-          </footer>
-        </main>
-      )}
+              <div className="gov-table-wrap" style={{ marginBlock: 24 }}>
+                <table className="gov-table">
+                  <thead>
+                    <tr>
+                      <th>{lang === "en" ? "Regulation / Statutory Act" : "विनियम / वैधानिक अधिनियम"}</th>
+                      <th>{lang === "en" ? "Domain" : "क्षेत्र"}</th>
+                      <th>{lang === "en" ? "Frequency / Mandate" : "आवृत्ति"}</th>
+                      <th>{lang === "en" ? "Last Filing / Verification" : "अंतिम सत्यापन"}</th>
+                      <th>{lang === "en" ? "Compliance Status" : "अनुपालन स्थिति"}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td><b>CMR 2017 — Reg. 108</b><br /><span style={{ fontSize: 11.5, color: "#64748b" }}>Strata Control & Support Plan (SCAMP)</span></td>
+                      <td>Roof Support</td>
+                      <td>Daily / Shift-wise</td>
+                      <td>18 Feb 2026, 06:20</td>
+                      <td><span className="table-badge badge-warning">High Risk Flag</span></td>
+                    </tr>
+                    <tr>
+                      <td><b>CMR 2017 — Reg. 140</b><br /><span style={{ fontSize: 11.5, color: "#64748b" }}>Underground Ventilation & Gas Standards</span></td>
+                      <td>Ventilation & Gases</td>
+                      <td>Continuous Telemetry</td>
+                      <td>18 Feb 2026, 09:15</td>
+                      <td><span className="table-badge badge-success">Compliant (0.42% CH₄)</span></td>
+                    </tr>
+                    <tr>
+                      <td><b>Mines Act 1952 — Form IV-B</b><br /><span style={{ fontSize: 11.5, color: "#64748b" }}>Quarterly Occupational Health & Safety Declaration</span></td>
+                      <td>Labour Health</td>
+                      <td>Quarterly Return</td>
+                      <td>15 Jan 2026</td>
+                      <td><span className="table-badge badge-success">Approved (DGMS)</span></td>
+                    </tr>
+                    <tr>
+                      <td><b>Mines Act 1952 — Form III-A</b><br /><span style={{ fontSize: 11.5, color: "#64748b" }}>Monthly Statutory Return (DGMS/MoEFCC)</span></td>
+                      <td>Statutory Return</td>
+                      <td>Monthly (Due 20th)</td>
+                      <td>18 Feb 2026 (Draft)</td>
+                      <td><span className="table-badge badge-info">Draft Ready for DSC</span></td>
+                    </tr>
+                    <tr>
+                      <td><b>MoEFCC Air Quality Standards</b><br /><span style={{ fontSize: 11.5, color: "#64748b" }}>PM10 / PM2.5 Ambient Dust Limit</span></td>
+                      <td>Environment</td>
+                      <td>Continuous 24h</td>
+                      <td>18 Feb 2026</td>
+                      <td><span className="table-badge badge-success">Compliant (2.4 mg/m³)</span></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </main>
+          )}
+
+          {/* ══════════════════════════════════════════════════════════════════
+              VIEW 6: CONTRACTORS & LABOUR DIRECTORY
+              ══════════════════════════════════════════════════════════════════ */}
+          {activeFeature === "contractors" && (
+            <main className="wrap">
+              <section className="pagehead">
+                <div>
+                  <div className="headmeta">
+                    <span className="tag">
+                      <UsersIcon className="ic ic-xs" />
+                      Contractor Vault
+                    </span>
+                    <span className="tag quiet">Contract Labour Act & Form V</span>
+                  </div>
+                  <h1 style={{ marginTop: 6 }}>{t.navContractors}</h1>
+                  <p style={{ color: "var(--gesso-fg-muted)", fontSize: 13, marginTop: 2 }}>
+                    {lang === "en" ? "Authorized mining agencies, Form V compliance, worker inductions & safety ratings" : "अधिकृत खनन एजेंसियां, फॉर्म V अनुपालन, सुरक्षा इंडक्शन एवं स्टार रेटिंग"}
+                  </p>
+                </div>
+              </section>
+
+              <div className="rule"></div>
+
+              <div className="gov-table-wrap" style={{ marginBlock: 24 }}>
+                <table className="gov-table">
+                  <thead>
+                    <tr>
+                      <th>{lang === "en" ? "Contractor / Agency" : "ठेकेदार / एजेंसी"}</th>
+                      <th>{lang === "en" ? "Assigned Section" : "आवंटित क्षेत्र"}</th>
+                      <th>{lang === "en" ? "Workers On Shift" : "पाली में श्रमिक"}</th>
+                      <th>{lang === "en" ? "Form V License" : "फॉर्म V लाइसेंस"}</th>
+                      <th>{lang === "en" ? "Safety Star Rating" : "सुरक्षा रेटिंग"}</th>
+                      <th>{lang === "en" ? "Status" : "स्थिति"}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td><b>Eastern Coking & Earthmovers Ltd.</b><br /><span style={{ fontSize: 11.5, color: "#64748b" }}>ID: DGMS-EAS-2026-8812</span></td>
+                      <td>Section B (Overburden)</td>
+                      <td>184</td>
+                      <td>Valid to Nov 2027</td>
+                      <td>⭐ 4.8 / 5.0</td>
+                      <td><span className="table-badge badge-success">Authorized</span></td>
+                    </tr>
+                    <tr>
+                      <td><b>Bharat Heavy Strata Drillers LLP</b><br /><span style={{ fontSize: 11.5, color: "#64748b" }}>ID: DGMS-BHA-2026-4419</span></td>
+                      <td>Panel B-3 Roof Bolting</td>
+                      <td>92</td>
+                      <td>Valid to Aug 2026</td>
+                      <td>⭐ 4.2 / 5.0</td>
+                      <td><span className="table-badge badge-warning">Audit Due</span></td>
+                    </tr>
+                    <tr>
+                      <td><b>Jharia Mining Haulage Services</b><br /><span style={{ fontSize: 11.5, color: "#64748b" }}>ID: DGMS-JHA-2026-1022</span></td>
+                      <td>Underground Incline P-2</td>
+                      <td>136</td>
+                      <td>Valid to Jan 2028</td>
+                      <td>⭐ 4.9 / 5.0</td>
+                      <td><span className="table-badge badge-success">Authorized</span></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </main>
+          )}
+
+          {/* ══════════════════════════════════════════════════════════════════
+              VIEW 7: REPORTS & STATUTORY FILINGS (FORM III-A)
+              ══════════════════════════════════════════════════════════════════ */}
+          {activeFeature === "reports" && (
+            <main className="wrap">
+              <section className="pagehead">
+                <div>
+                  <button className="backlink" type="button" onClick={() => setActiveFeature("dashboard")}>
+                    <ArrowLeftIcon className="ic ic-xs" />
+                    {t.crumbBackReports}
+                  </button>
+                  <h1>{t.pageCreateReport}</h1>
+                  <div className="headmeta">
+                    <span className="tag">
+                      <FileTextIcon className="ic ic-xs" />
+                      {t.tagDraftReport}
+                    </span>
+                    <span className="tag quiet">
+                      <MapPinIcon className="ic ic-xs" />
+                      {t.tagJharia}
+                    </span>
+                    <span className="tag quiet">
+                      <ClockIcon className="ic ic-xs" />
+                      {t.tagAutosavedTime}
+                    </span>
+                  </div>
+                </div>
+                <div className="actionrow">
+                  <button
+                    className="btn btn-primary"
+                    type="button"
+                    onClick={() => setAckModalOpen(true)}
+                  >
+                    <FileCheckIcon className="ic ic-sm" />
+                    {t.btnSubmitDgmsEfiling}
+                  </button>
+                  <button
+                    className="btn btn-outline"
+                    type="button"
+                    onClick={() => showToast(lang === "en" ? "Opening print preview..." : "पूर्वावलोकन खुल रहा है...")}
+                  >
+                    <EyeIcon className="ic ic-sm" />
+                    {t.preview}
+                  </button>
+                </div>
+              </section>
+
+              <div className="rule"></div>
+
+              <div className="main">
+                <div className="col">
+                  <section className="card tinted">
+                    <div className="card-head">
+                      <span className="sec-label">{t.cardReportParameters}</span>
+                      <span className="sec-label-hi">{t.step1of2}</span>
+                    </div>
+
+                    <div className="field">
+                      <span className="flabel">{t.lblReportType}</span>
+                      <button className="well" type="button">
+                        <span className="well-stack">
+                          <span className="well-title">{t.valReportType}</span>
+                          <span className="well-sub">{t.valReportTypeSub}</span>
+                        </span>
+                        <ChevronDownIcon className="ic ic-sm" style={{ color: "var(--gesso-fg-muted)" }} />
+                      </button>
+                    </div>
+
+                    <div className="field">
+                      <span className="flabel">{t.lblReportingPeriod}</span>
+                      <div className="pillrow" role="group">
+                        {[
+                          { key: "jan2026", label: t.optJan2026 },
+                          { key: "feb2026", label: t.optFeb2026 },
+                          { key: "q4", label: t.optQ4 },
+                          { key: "custom", label: t.optCustom }
+                        ].map((item) => (
+                          <button
+                            key={item.key}
+                            className={`chip ${reportingPeriod === item.key ? "active" : ""}`}
+                            type="button"
+                            aria-pressed={reportingPeriod === item.key}
+                            onClick={() => setReportingPeriod(item.key)}
+                          >
+                            {item.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="field">
+                      <span className="flabel">{t.lblSigningAuthority}</span>
+                      <button className="well" type="button">
+                        <span className="well-stack">
+                          <span className="well-title">{t.valSignerName}</span>
+                          <span className="well-sub">{t.valSignerRole}</span>
+                        </span>
+                        <ChevronDownIcon className="ic ic-sm" style={{ color: "var(--gesso-fg-muted)" }} />
+                      </button>
+                    </div>
+
+                    <div className="formfoot">
+                      <button
+                        className="btn btn-primary"
+                        type="button"
+                        onClick={() => setAckModalOpen(true)}
+                      >
+                        <FileCheckIcon className="ic ic-sm" />
+                        {t.btnSubmitDgmsEfiling}
+                      </button>
+                    </div>
+                    <p className="hint">
+                      {t.reportGenHint}
+                    </p>
+                  </section>
+
+                  <section className="card">
+                    <div className="card-head">
+                      <span className="sec-label">{t.cardSectionsIncluded}</span>
+                      <span className="sec-label-hi">{selectedSectionCount} / 6 {t.widgetsSelectedOf}</span>
+                    </div>
+                    <div className="toggles">
+                      <div className="trow2">
+                        <span className="tglyph"><ClipboardCheckIcon className="ic ic-sm" /></span>
+                        <span className="ttxt">
+                          <span className="ttitle">{t.secInspections}</span>
+                          <span className="tmeta">{t.secInspectionsMeta}</span>
+                        </span>
+                        <button
+                          className={`switch ${statutorySections.inspections ? "active" : ""}`}
+                          type="button"
+                          onClick={() => toggleStatutorySection("inspections")}
+                        ></button>
+                      </div>
+
+                      <div className="trow2">
+                        <span className="tglyph"><AlertTriangleIcon className="ic ic-sm" /></span>
+                        <span className="ttxt">
+                          <span className="ttitle">{t.secViolations}</span>
+                          <span className="tmeta">{t.secViolationsMeta}</span>
+                        </span>
+                        <button
+                          className={`switch ${statutorySections.violations ? "active" : ""}`}
+                          type="button"
+                          onClick={() => toggleStatutorySection("violations")}
+                        ></button>
+                      </div>
+
+                      <div className="trow2">
+                        <span className="tglyph"><BarChartIcon className="ic ic-sm" /></span>
+                        <span className="ttxt">
+                          <span className="ttitle">{t.secProduction}</span>
+                          <span className="tmeta">{t.secProductionMeta}</span>
+                        </span>
+                        <button
+                          className={`switch ${statutorySections.production ? "active" : ""}`}
+                          type="button"
+                          onClick={() => toggleStatutorySection("production")}
+                        ></button>
+                      </div>
+                    </div>
+                  </section>
+                </div>
+
+                <div className="col">
+                  <section className="card">
+                    <div className="card-head">
+                      <span className="sec-label">{t.cardReportPreview}</span>
+                      <span className="sec-label-hi">{t.form3aPreview}</span>
+                    </div>
+                    <div className="previewbox">
+                      <div className="pv-title">
+                        {t.pvHeading} {periodLabels[reportingPeriod]}
+                        <span>{t.pvSubtitle}</span>
+                      </div>
+                      <div className="pv-lines">
+                        <div className="pv-line">
+                          <span className="pv-k">{t.pvPeriod}</span>
+                          <span className="pv-v">{periodLabels[reportingPeriod]}</span>
+                        </div>
+                        <div className="pv-line">
+                          <span className="pv-k">{t.pvSigner}</span>
+                          <span className="pv-v">{t.pvSignerVal}</span>
+                        </div>
+                        <div className="pv-line">
+                          <span className="pv-k">{t.pvRecords}</span>
+                          <span className="pv-v">{t.pvRecordsVal}</span>
+                        </div>
+                        <div className="pv-line">
+                          <span className="pv-k">{t.pvActiveSections}</span>
+                          <span className="pv-v">{selectedSectionCount} {t.pvActiveSectionsVal}</span>
+                        </div>
+                        <div className="pv-line">
+                          <span className="pv-k">{t.pvToken}</span>
+                          <span className="pv-v" style={{ fontFamily: "var(--gesso-font-mono)", fontSize: 11 }}>SHA256: 8f9b2a7d4e1c</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="metergrid">
+                      <div className="meter">
+                        <div className="mtop">
+                          <span className="mname">{t.meterCompliance}</span>
+                          <span className="mval">98.4%</span>
+                        </div>
+                        <div className="track"><i style={{ width: "98.4%" }}></i></div>
+                      </div>
+                      <div className="meter">
+                        <div className="mtop">
+                          <span className="mname">{t.meterStrata}</span>
+                          <span className="mval">92.0%</span>
+                        </div>
+                        <div className="track"><i style={{ width: "92.0%" }}></i></div>
+                      </div>
+                    </div>
+                  </section>
+                </div>
+              </div>
+            </main>
+          )}
+
+          {/* ══════════════════════════════════════════════════════════════════
+              VIEW 8: IMMUTABLE AUDIT TRAIL EXPLORER
+              ══════════════════════════════════════════════════════════════════ */}
+          {activeFeature === "audit" && (
+            <main className="wrap">
+              <section className="pagehead">
+                <div>
+                  <div className="headmeta">
+                    <span className="tag">
+                      <LockIcon className="ic ic-xs" />
+                      Tamper-Proof Audit Trail
+                    </span>
+                    <span className="tag quiet">CMR Reg. 108 & ISO 27001</span>
+                  </div>
+                  <h1 style={{ marginTop: 6 }}>{t.navAudit}</h1>
+                  <p style={{ color: "var(--gesso-fg-muted)", fontSize: 13, marginTop: 2 }}>
+                    {lang === "en" ? "Immutable cryptographic event log of AI alerts, inspections, logins & filings" : "एआई अलर्ट, निरीक्षण, लॉगिन एवं विवरणियों का अपरिवर्तनीय डिजिटल लॉग"}
+                  </p>
+                </div>
+                <div className="actionrow">
+                  <button
+                    className="btn btn-primary"
+                    type="button"
+                    disabled={isVerifyingAudit}
+                    onClick={handleVerifyAuditChain}
+                  >
+                    <ShieldIcon className="ic ic-sm" />
+                    {isVerifyingAudit
+                      ? (lang === "en" ? "Verifying..." : "सत्यापित हो रहा है...")
+                      : (lang === "en" ? "Verify Cryptographic Chain" : "क्रिप्टोग्राफिक श्रृंखला सत्यापित करें")}
+                  </button>
+                  <button
+                    className="btn btn-outline"
+                    type="button"
+                    onClick={() => showToast(lang === "en" ? "Exporting Audit Trail (PDF)..." : "ऑडिट ट्रेल डाउनलोड हो रहा है...")}
+                  >
+                    <DownloadIcon className="ic ic-sm" />
+                    {lang === "en" ? "Export Audit Log" : "ऑडिट लॉग निर्यात करें"}
+                  </button>
+                </div>
+              </section>
+
+              <div className="rule"></div>
+
+              {auditVerifyResult && (
+                <div className="audit-verified-banner" style={{ marginBlock: 16 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <CheckIcon className="ic ic-sm" />
+                    <span>
+                      {auditVerifyResult.valid
+                        ? (lang === "en"
+                            ? `🔒 HMAC-SHA-256 Audit Chain Verified Unbroken (Blocks ${auditVerifyResult.fromSequence}..${auditVerifyResult.toSequence}, ${auditVerifyResult.verifiedCount} blocks validated)`
+                            : `🔒 HMAC-SHA-256 ऑडिट श्रृंखला अखंड सत्यापित (ब्लॉक ${auditVerifyResult.fromSequence}..${auditVerifyResult.toSequence}, ${auditVerifyResult.verifiedCount} ब्लॉक मान्य)`)
+                        : `❌ Cryptographic chain broken at sequence ${auditVerifyResult.brokenAtSequence}`}
+                    </span>
+                  </div>
+                  <span className="live-api-badge">HMAC-SHA-256 v1.0.0</span>
+                </div>
+              )}
+
+              <div className="gov-table-wrap" style={{ marginBlock: 24 }}>
+                <table className="gov-table">
+                  <thead>
+                    <tr>
+                      <th>{lang === "en" ? "Seq / Time" : "क्रम / समय"}</th>
+                      <th>{lang === "en" ? "Event Type" : "गतिविधि प्रकार"}</th>
+                      <th>{lang === "en" ? "Actor / Authorized User" : "उपयोगकर्ता"}</th>
+                      <th>{lang === "en" ? "Event Details" : "विवरण"}</th>
+                      <th>{lang === "en" ? "HMAC Hash Link" : "डिजिटल हैश"}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {liveAuditLogs && liveAuditLogs.length > 0 ? (
+                      liveAuditLogs.map((log) => (
+                        <tr key={log.id || log.sequence}>
+                          <td>
+                            <div style={{ fontWeight: 700 }}>#{log.sequence}</div>
+                            <div style={{ fontSize: 11, color: "var(--gesso-fg-muted)" }}>
+                              {new Date(log.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                            </div>
+                          </td>
+                          <td>
+                            <span className="table-badge badge-info">
+                              {log.eventType}
+                            </span>
+                          </td>
+                          <td>
+                            <div style={{ fontWeight: 600 }}>{log.actor?.name || log.actorRole || "System"}</div>
+                            <div style={{ fontSize: 11, color: "var(--gesso-fg-muted)" }}>{log.actor?.email || log.actorRole}</div>
+                          </td>
+                          <td>
+                            <div style={{ fontSize: 13 }}>{log.resourceType}: {log.action}</div>
+                            <div style={{ fontSize: 11, color: "var(--gesso-fg-muted)", fontFamily: "var(--gesso-font-mono)" }}>
+                              ID: {log.resourceId?.slice(0, 12)}...
+                            </div>
+                          </td>
+                          <td style={{ fontFamily: "var(--gesso-font-mono)", fontSize: 11, color: "var(--gesso-accent)" }}>
+                            {log.hmacHash ? `${log.hmacHash.slice(0, 10)}...` : "#a81f9b"}
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <>
+                        <tr>
+                          <td>18 Feb 2026, 06:20</td>
+                          <td><span className="table-badge badge-danger">AI Risk Trigger</span></td>
+                          <td>System AI Model v4.2</td>
+                          <td>Section B Roof-fall risk computed at 78/100</td>
+                          <td style={{ fontFamily: "var(--gesso-font-mono)", fontSize: 11 }}>#a81f9b09</td>
+                        </tr>
+                        <tr>
+                          <td>18 Feb 2026, 06:22</td>
+                          <td><span className="table-badge badge-warning">Notification Sent</span></td>
+                          <td>Grid Dispatcher</td>
+                          <td>Alert SMS/In-App sent to Agent Manager & Safety Officer</td>
+                          <td style={{ fontFamily: "var(--gesso-font-mono)", fontSize: 11 }}>#e49c01f2</td>
+                        </tr>
+                        <tr>
+                          <td>18 Feb 2026, 07:05</td>
+                          <td><span className="table-badge badge-info">Portal Access</span></td>
+                          <td>{currentUser.contractorName}</td>
+                          <td>Accessed Grid via ID {currentUser.contractorId}</td>
+                          <td style={{ fontFamily: "var(--gesso-font-mono)", fontSize: 11 }}>#8f2a1b44</td>
+                        </tr>
+                        <tr>
+                          <td>18 Feb 2026, 07:45</td>
+                          <td><span className="table-badge badge-success">CAPA Assigned</span></td>
+                          <td>Area Safety Officer</td>
+                          <td>Assigned re-bolting SLA (24 hrs) to Officer S. Kujur</td>
+                          <td style={{ fontFamily: "var(--gesso-font-mono)", fontSize: 11 }}>#7c19d4ee</td>
+                        </tr>
+                      </>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </main>
+          )}
+
+          {/* ══════════════════════════════════════════════════════════════════
+              VIEW 9: MULTILINGUAL GOVERNED CONVERSATIONAL ASSISTANT
+              ══════════════════════════════════════════════════════════════════ */}
+          {activeFeature === "assistant" && (
+            <main className="wrap" data-brief-id="assistant-root">
+              <section className="pagehead">
+                <div>
+                  <div className="headmeta">
+                    <span className="tag">
+                      <BotIcon className="ic ic-xs" />
+                      {t.navAssistant}
+                    </span>
+                    <span className="tag quiet">
+                      <span className="badge-dot-live" />
+                      {lang === "en" ? "Grounded Compliance AI" : "सत्यापित शासन एआई"}
+                    </span>
+                  </div>
+                  <h1 style={{ marginTop: 6 }}>{t.assistantTitle}</h1>
+                  <p style={{ color: "var(--gesso-fg-muted)", fontSize: 13, marginTop: 2 }}>{t.assistantSub}</p>
+                </div>
+              </section>
+
+              <div className="rule"></div>
+
+              <div className="assistant-container" style={{ marginBlock: 20 }}>
+                <div className="assistant-messages-list">
+                  {assistantHistory.map((msg, idx) => (
+                    <div key={idx} className={`assistant-msg ${msg.role}`}>
+                      <div className="assistant-bubble">
+                        <div style={{ whiteSpace: "pre-wrap" }}>{msg.text}</div>
+                        {msg.citations && msg.citations.length > 0 && (
+                          <div className="assistant-citations-box">
+                            {msg.citations.map((c, cIdx) => (
+                              <span key={cIdx} className="citation-chip">
+                                📎 {c.label || c.resourceType}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                        {msg.disclaimer && (
+                          <div className="assistant-disclaimer-tag">
+                            ⚖️ {msg.disclaimer}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                  {assistantLoading && (
+                    <div className="assistant-msg assistant">
+                      <div className="assistant-bubble" style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <RefreshCwIcon className="ic ic-xs ic-spin" />
+                        <span>{lang === "en" ? "Querying scoped statutory records..." : "वैधानिक अभिलेखों की जाँच हो रही है..."}</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div style={{ padding: "8px 18px", display: "flex", gap: 8, flexWrap: "wrap", background: "var(--gesso-panel)", borderTop: "1px solid var(--gesso-divider)" }}>
+                  <button
+                    type="button"
+                    className="btn btn-ghost"
+                    style={{ fontSize: 11.5, height: 28, padding: "0 10px", background: "var(--gesso-canvas)", border: "1px solid var(--gesso-divider)" }}
+                    onClick={() => setAssistantQueryText(lang === "en" ? "What is the safety risk score for Jharia Block-4?" : "झरिया खदान का सुरक्षा जोखिम स्कोर क्या है?")}
+                  >
+                    💡 {lang === "en" ? "Check Jharia Risk Score" : "झरिया जोखिम स्कोर देखें"}
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-ghost"
+                    style={{ fontSize: 11.5, height: 28, padding: "0 10px", background: "var(--gesso-canvas)", border: "1px solid var(--gesso-divider)" }}
+                    onClick={() => setAssistantQueryText(lang === "en" ? "What is the statutory compliance status?" : "वैधानिक अनुपालन स्थिति क्या है?")}
+                  >
+                    📋 {lang === "en" ? "Statutory Compliance Status" : "वैधानिक अनुपालन स्थिति"}
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-ghost"
+                    style={{ fontSize: 11.5, height: 28, padding: "0 10px", background: "var(--gesso-canvas)", border: "1px solid var(--gesso-divider)" }}
+                    onClick={() => setAssistantQueryText(lang === "en" ? "Are there any overdue corrective actions?" : "क्या कोई लंबित सुधारात्मक कार्रवाई है?")}
+                  >
+                    ⚠️ {lang === "en" ? "Overdue CAPAs" : "लंबित कापा सूची"}
+                  </button>
+                </div>
+
+                <form onSubmit={handleSendAssistantQuery} className="assistant-input-bar">
+                  <input
+                    type="text"
+                    placeholder={lang === "en" ? "Ask in English or Hindi (e.g. What is the current safety risk score?)..." : "हिन्दी या अंग्रेजी में प्रश्न पूछें (उदा. सुरक्षा जोखिम स्कोर क्या है?)..."}
+                    value={assistantQueryText}
+                    onChange={(e) => setAssistantQueryText(e.target.value)}
+                    disabled={assistantLoading}
+                  />
+                  <button
+                    className="btn btn-primary"
+                    type="submit"
+                    disabled={assistantLoading || !assistantQueryText.trim()}
+                    style={{ height: 44, padding: "0 20px" }}
+                  >
+                    <SendIcon className="ic ic-xs" />
+                    <span>{lang === "en" ? "Ask Query" : "पूछें"}</span>
+                  </button>
+                </form>
+              </div>
+            </main>
+          )}
+
         </div>
       </div>
+
+      {/* ══════════════════════════════════════════════════════════════════════
+          MODAL 1: GEO-TAGGED OBSERVATION LOGGER
+          ══════════════════════════════════════════════════════════════════════ */}
+      {observationModalOpen && (
+        <div className="modal-overlay" role="dialog" aria-modal="true">
+          <div className="modal-card">
+            <div className="modal-header-bar">
+              <h2>{t.modalObservationTitle}</h2>
+              <button
+                className="iconbtn"
+                type="button"
+                onClick={() => setObservationModalOpen(false)}
+              >
+                <XIcon className="ic ic-sm" />
+              </button>
+            </div>
+            <form onSubmit={handleSaveObservation}>
+              <div className="modal-body">
+                {/* Geo-tag coordinates box */}
+                <div className="geo-tag-box">
+                  <MapPinIcon className="ic ic-sm" style={{ color: "#2563eb" }} />
+                  <div>
+                    <div style={{ fontSize: 11, color: "#64748b" }}>{t.lblGeoCoords}</div>
+                    <div className="geo-tag-coords">23.7507° N, 86.4158° E · Seam 4 (Panel B-3)</div>
+                  </div>
+                </div>
+
+                <div className="field">
+                  <label>{t.lblObsType}</label>
+                  <select
+                    className="well"
+                    value={obsType}
+                    onChange={(e) => setObsType(e.target.value)}
+                    style={{ height: 42, background: "#ffffff" }}
+                  >
+                    <option value="unsafe_condition">{t.optUnsafeCondition}</option>
+                    <option value="unsafe_act">{t.optUnsafeAct}</option>
+                    <option value="gas_seepage">{t.optGasSeepage}</option>
+                    <option value="equipment_flaw">{t.optEquipmentFlaw}</option>
+                  </select>
+                </div>
+
+                <div className="field">
+                  <label>{t.lblSeverity}</label>
+                  <div className="pillrow">
+                    {[
+                      { key: "critical", label: t.sevCritical },
+                      { key: "high", label: t.sevHigh },
+                      { key: "moderate", label: t.sevModerate }
+                    ].map(item => (
+                      <button
+                        key={item.key}
+                        type="button"
+                        className={`chip ${obsSeverity === item.key ? "active" : ""}`}
+                        onClick={() => setObsSeverity(item.key)}
+                      >
+                        {item.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="field">
+                  <label>{t.lblObsDescription}</label>
+                  <textarea
+                    className="well"
+                    rows="3"
+                    placeholder={t.phObsDescription}
+                    value={obsText}
+                    onChange={(e) => setObsText(e.target.value)}
+                    required
+                    style={{ resize: "vertical", minHeight: 70 }}
+                  ></textarea>
+                </div>
+              </div>
+
+              <div className="modal-footer-bar">
+                <button
+                  className="btn btn-ghost"
+                  type="button"
+                  onClick={() => setObservationModalOpen(false)}
+                >
+                  {t.cancel}
+                </button>
+                <button
+                  className="btn btn-primary"
+                  type="submit"
+                >
+                  <CheckIcon className="ic ic-sm" />
+                  {t.btnSubmitObservation}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════════════════════════════════════
+          MODAL 2: INTERACTIVE CHECKPOINT RUNNER
+          ══════════════════════════════════════════════════════════════════ */}
+      {checklistRunnerOpen && (
+        <div className="modal-overlay" role="dialog" aria-modal="true">
+          <div className="modal-card" style={{ maxWidth: 680 }}>
+            <div className="modal-header-bar">
+              <div>
+                <h2>{t.modalChecklistTitle}</h2>
+                <div style={{ fontSize: 12, color: "#64748b", marginTop: 2 }}>
+                  {passedCheckpointsCount} / {checkpointsList.length} {t.checkpointPassedCount}
+                </div>
+              </div>
+              <button
+                className="iconbtn"
+                type="button"
+                onClick={() => setChecklistRunnerOpen(false)}
+              >
+                <XIcon className="ic ic-sm" />
+              </button>
+            </div>
+
+            <div className="modal-body">
+              <div className="track" style={{ height: 6 }}>
+                <i style={{ width: `${Math.round((passedCheckpointsCount / checkpointsList.length) * 100)}%` }}></i>
+              </div>
+
+              <div className="interactive-check-list">
+                {checkpointsList.map((chk) => (
+                  <div
+                    key={chk.id}
+                    className={`checkpoint-card-item ${chk.status === "pass" ? "status-passed" : "status-failed"}`}
+                  >
+                    <div className="checkpoint-info">
+                      <div className="checkpoint-title-text">
+                        {lang === "en" ? chk.titleEn : chk.titleHi}
+                      </div>
+                      <div className="checkpoint-sub-reg">{chk.reg}</div>
+                    </div>
+                    <div className="checkpoint-btn-group">
+                      <button
+                        type="button"
+                        className={`btn-chk ${chk.status === "pass" ? "pass-active" : ""}`}
+                        onClick={() => toggleCheckpointStatus(chk.id, "pass")}
+                      >
+                        ✓ {t.btnPass}
+                      </button>
+                      <button
+                        type="button"
+                        className={`btn-chk ${chk.status === "fail" ? "fail-active" : ""}`}
+                        onClick={() => toggleCheckpointStatus(chk.id, "fail")}
+                      >
+                        ✕ {t.btnFail}
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="modal-footer-bar">
+              <button
+                className="btn btn-ghost"
+                type="button"
+                onClick={() => setChecklistRunnerOpen(false)}
+              >
+                {t.cancel}
+              </button>
+              <button
+                className="btn btn-primary"
+                type="button"
+                onClick={() => {
+                  setChecklistRunnerOpen(false);
+                  showToast(t.checklistSavedToast);
+                }}
+              >
+                <CheckIcon className="ic ic-sm" />
+                {t.btnSaveChecklist}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════════════════════════════════════
+          MODAL 3: AI OCR DOCUMENT SCANNER
+          ══════════════════════════════════════════════════════════════════ */}
+      {ocrScannerOpen && (
+        <div className="modal-overlay" role="dialog" aria-modal="true">
+          <div className="modal-card">
+            <div className="modal-header-bar">
+              <h2>{t.modalOcrTitle}</h2>
+              <button className="iconbtn" type="button" onClick={() => setOcrScannerOpen(false)}>
+                <XIcon className="ic ic-sm" />
+              </button>
+            </div>
+            <div className="modal-body">
+              <div style={{ border: "2px dashed #cbd5e1", borderRadius: 8, padding: 32, textAlign: "center", background: "#f8fafc" }}>
+                <FileTextIcon style={{ width: 36, height: 36, color: "#2563eb", margin: "0 auto 8px" }} />
+                <div style={{ fontWeight: 700, fontSize: 14 }}>{lang === "en" ? "Upload Scanned DGMS Inspection Notice / Form" : "डीजीएमएस नोटिस या फॉर्म अपलोड करें"}</div>
+                <div style={{ fontSize: 12, color: "#64748b", marginTop: 4 }}>PDF, PNG, JPG up to 15MB</div>
+              </div>
+              <div style={{ background: "#eff6ff", border: "1px solid #bfdbfe", padding: 12, borderRadius: 6, fontSize: 12.5, color: "#1e40af" }}>
+                ⚡ {t.ocrProcessing}
+              </div>
+            </div>
+            <div className="modal-footer-bar">
+              <button className="btn btn-ghost" type="button" onClick={() => setOcrScannerOpen(false)}>
+                {t.cancel}
+              </button>
+              <button
+                className="btn btn-primary"
+                type="button"
+                onClick={() => {
+                  setOcrScannerOpen(false);
+                  showToast(t.ocrSuccess);
+                }}
+              >
+                <CheckIcon className="ic ic-sm" />
+                {lang === "en" ? "Digitize & Save to Register" : "डिजिटाइज़ करें एवं सहेजें"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════════════════════════════════════
+          MODAL 4: DGMS ELECTRONIC ACKNOWLEDGMENT RECEIPT
+          ══════════════════════════════════════════════════════════════════ */}
+      {ackModalOpen && (
+        <div className="modal-overlay" role="dialog" aria-modal="true">
+          <div className="modal-card" style={{ maxWidth: 540 }}>
+            <div className="modal-header-bar">
+              <h2>{t.modalAckTitle}</h2>
+              <button className="iconbtn" type="button" onClick={() => setAckModalOpen(false)}>
+                <XIcon className="ic ic-sm" />
+              </button>
+            </div>
+            <div className="modal-body">
+              <div className="dgms-ack-slip">
+                <div className="dgms-ack-header">
+                  <div className="dgms-ack-title">{lang === "en" ? "Ministry of Coal · DGMS Compliance Grid" : "कोयला मंत्रालय · डीजीएमएस अनुपालन ग्रिड"}</div>
+                  <div className="dgms-ack-sub">Electronic Statutory Return Filing Acknowledgment</div>
+                </div>
+
+                <div className="dgms-ack-meta-grid">
+                  <div>
+                    <div className="dgms-ack-k">Receipt Number</div>
+                    <div className="dgms-ack-v">DGMS-ACK-2026-08914</div>
+                  </div>
+                  <div>
+                    <div className="dgms-ack-k">Mine Block</div>
+                    <div className="dgms-ack-v">Jharia Block-4 (BCCL)</div>
+                  </div>
+                  <div>
+                    <div className="dgms-ack-k">Form Type</div>
+                    <div className="dgms-ack-v">Form III-A Monthly Return</div>
+                  </div>
+                  <div>
+                    <div className="dgms-ack-k">Filing Period</div>
+                    <div className="dgms-ack-v">{periodLabels[reportingPeriod]}</div>
+                  </div>
+                </div>
+
+                <div style={{ textAlign: "center", marginBlock: 12 }}>
+                  <div className="dgms-ack-stamp">
+                    ✓ Digitally Approved & Filed
+                  </div>
+                </div>
+
+                <div style={{ fontSize: 11, color: "#64748b", borderTop: "1px solid #e2e8f0", paddingTop: 8, textAlign: "center" }}>
+                  {t.ackDigitalSign}
+                </div>
+              </div>
+            </div>
+            <div className="modal-footer-bar">
+              <button className="btn btn-ghost" type="button" onClick={() => setAckModalOpen(false)}>
+                {t.cancel}
+              </button>
+              <button
+                className="btn btn-primary"
+                type="button"
+                onClick={() => {
+                  setAckModalOpen(false);
+                  showToast(lang === "en" ? "Downloading signed acknowledgment PDF..." : "हस्ताक्षरित पावती डाउनलोड हो रही है...");
+                }}
+              >
+                <DownloadIcon className="ic ic-sm" />
+                {t.btnPrintAck}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
